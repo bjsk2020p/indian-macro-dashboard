@@ -9,6 +9,21 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 <!-- Saved data written by refresh_data.py (also via server.py). Optional: without it the page shows embedded baseline. -->
 <script src="data/macro_snapshot.js"></script>
+<script>
+  // Phone home-screen install (PWA manifest + icons): hosted copies only. No service worker, no data caching.
+  (function () {
+    if (location.protocol !== 'https:' || location.hostname === '127.0.0.1' || location.hostname === 'localhost') return;
+    [['link', { rel: 'manifest', href: 'manifest.webmanifest' }],
+     ['link', { rel: 'apple-touch-icon', href: 'icons/icon-180.png' }],
+     ['link', { rel: 'icon', type: 'image/png', sizes: '192x192', href: 'icons/icon-192.png' }],
+     ['meta', { name: 'theme-color', content: '#1e293b' }],
+     ['meta', { name: 'apple-mobile-web-app-title', content: 'India Macro' }]].forEach(function (d) {
+      var el = document.createElement(d[0]);
+      for (var k in d[1]) el.setAttribute(k, d[1][k]);
+      document.head.appendChild(el);
+    });
+  })();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -616,6 +631,45 @@
     .chart-container.short { height: 300px; }
     .footer { padding: 20px; }
   }
+
+  /* <phone-layout> ≤480px only: single column, ≥44px tap targets, shorter charts, no sideways page scroll.
+     Wide tables scroll inside their own box. Desktop/tablet rules above are unchanged. */
+  @media (max-width: 480px) {
+    .header { position: static; padding: 12px 12px 14px; gap: 10px; }
+    .header-eyebrow { font-size: 9px; letter-spacing: 0.1em; }
+    .header-title { font-size: 14px; }
+    .header-right { width: 100%; gap: 8px 10px; }
+    .timestamp { color: #cbd5e1; flex: 1 1 100%; }
+    .refresh-btn { min-height: 44px; padding: 10px 16px; margin-left: auto; }
+    .main { padding: 12px; }
+    .mode-notice { font-size: 12.5px; padding: 10px 12px; overflow-wrap: anywhere; }
+    .stat-cards, .us-cards, .us-scores, .us-trends-grid, .us-impact-grid, .sources-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .stat-card { padding: 16px 16px; }
+    .stat-card-label { padding-right: 76px; }
+    .timeline-event { flex: 1 1 100%; }
+    .chart-section { padding: 16px 12px; border-radius: 12px; margin-bottom: 16px; }
+    .chart-header { margin-bottom: 14px; }
+    .axis-labels { gap: 8px 12px; }
+    .chart-container { height: 260px; }
+    .chart-container.short { height: 240px; }
+    .us-section { padding: 16px 12px; border-radius: 12px; }
+    .us-recent, .us-trends, .us-surprise { padding: 14px 12px; }
+    .us-tabs { width: 100%; }
+    .us-tab { min-height: 44px; flex: 1 1 0; }
+    .us-table-wrap { max-width: 100%; }
+    .us-bullet-wrap { height: 130px; }
+    .footer { padding: 16px 12px; border-radius: 12px; }
+    .status-panel > summary { min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+    .status-panel-sum { margin-left: 0; }
+    .status-table-wrap { max-height: 60vh; overflow: auto; -webkit-overflow-scrolling: touch;
+                         border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; }
+    .status-table { min-width: 1000px; }
+    .status-table td { min-width: 150px; }
+    .status-table th { position: sticky; top: 0; background: #1e293b; }
+    .source-url { display: inline-block; min-height: 44px; padding: 12px 0; }
+    .status-table a, .source-meta a { display: inline-block; padding: 4px 0; }
+  }
+  /* </phone-layout> */
 </style>
 </head>
 <body>
@@ -1458,6 +1512,28 @@ const fmtMonth = iso => iso ? new Date(iso + 'T00:00:00Z').toLocaleDateString('e
 const qLabelOf = iso => `Q${Math.floor((+iso.slice(5, 7) - 1) / 3) + 1} ${iso.slice(0, 4)}`;
 
 // State of a saved source, using its own publication schedule (not a universal threshold).
+// <hosted-state-rule>  — pure functions; tests/test_hosted_state.py runs this block in Node.
+// Hosted = served over https from a host that is not this PC (e.g. GitHub Pages). There the
+// data was checked by the scheduled GitHub Actions job, not by this page.
+const HOSTED_SCHEDULE_MINUTES = 180;   // must match the Pages workflow schedule (every 3 hours)
+const HOSTED_SLACK_MINUTES = 60;
+function detectRunMode(loc) {
+  if (loc.protocol === 'file:') return 'file';
+  if (loc.protocol === 'https:' && loc.hostname !== '127.0.0.1' && loc.hostname !== 'localhost') return 'hosted';
+  return 'local';                      // launcher/server, or any other http origin (unchanged behaviour)
+}
+// 'latest' only if the last successful check is within recheck_minutes + schedule + slack;
+// 'cached' if the job's latest check of this source failed; otherwise 'snapshot'.
+// (The stale rule is applied afterwards by entryState and can override any of these.)
+function hostedFreshState(meta, nowMs) {
+  if (meta.status && meta.status !== 'ok') return 'cached';
+  const t = Date.parse(meta.last_success_at || '');
+  if (isNaN(t)) return 'snapshot';
+  const windowMin = (Number(meta.recheck_minutes) || 0) + HOSTED_SCHEDULE_MINUTES + HOSTED_SLACK_MINUTES;
+  return nowMs - t <= windowMin * 60000 ? 'latest' : 'snapshot';
+}
+// </hosted-state-rule>
+
 function entryState(id) {
   const st = snapEntry(id);
   if (!st) {
@@ -1465,7 +1541,8 @@ function entryState(id) {
     return { state: 'unavailable', st: null, why: raw && raw.last_error ? raw.last_error.detail : 'no saved data' };
   }
   const m = st.meta, res = RUN.results[id];
-  let state = (RUN.mode === 'server' && RUN.ok && res)
+  let state = RUN.mode === 'hosted' ? hostedFreshState(m, Date.now())
+    : (RUN.mode === 'server' && RUN.ok && res)
     ? (res.action === 'pending' ? 'snapshot' : res.action === 'failed' || m.status !== 'ok' ? 'cached' : 'latest')
     : 'snapshot';
   let overdueAfter = null;
@@ -1480,6 +1557,13 @@ function provText(id) {
   const x = entryState(id);
   if (!x.st) return `unavailable (${x.why})`;
   const m = x.st.meta, parts = [];
+  if (RUN.mode === 'hosted') {
+    parts.push(x.state === 'cached' ? `scheduled check failed (${(m.last_error && m.last_error.detail) || 'error'}) · saved ${fmtIST(m.last_success_at)}`
+      : x.state === 'latest' || x.state === 'stale' ? `checked by scheduled job ${fmtIST(m.last_success_at)}`
+      : `last checked by scheduled job ${fmtIST(m.last_success_at)} (older than its schedule)`);
+    if (x.overdue) parts.push(`⚠ newer release overdue since ${fmtDay(x.overdueAfter)}`);
+    return parts.join(' · ');
+  }
   if (x.res && x.res.action === 'pending') {
     parts.push(`check still running (slow provider) · saved ${fmtIST(m.last_success_at)}`);
   } else if (x.state === 'latest') {
@@ -2565,13 +2649,36 @@ function showNotice(kind, html) {
 }
 const escHtml = t => String(t).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
 
+// Hosted only: re-read the published snapshot, bypassing caches, so a page left open (or the
+// Refresh button) picks up the scheduled job's newer data. Invalid data is ignored.
+async function reloadHostedSnapshot() {
+  const r = await fetch('data/macro_snapshot.js', { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+  if (!r.ok) throw new Error(`published data HTTP ${r.status}`);
+  const text = await r.text(), key = 'window.MACRO_SNAPSHOT = ';
+  const i = text.indexOf(key);
+  if (i < 0) throw new Error('published data has no snapshot');
+  const snap = JSON.parse(text.slice(i + key.length).trim().replace(/;$/, ''));
+  if (!snap || typeof snap.sources !== 'object' || !Object.keys(snap.sources).length) throw new Error('published snapshot is empty');
+  window.MACRO_SNAPSHOT = snap;
+}
+
 async function loadAllData(force = false) {
   const seq = ++loadSeq;
   setLoading(true);
   RUN.ok = false; RUN.results = {}; RUN.error = null; RUN.fxDirect = null; RUN.problems = [];
+  const runMode = detectRunMode(location);
+  if (runMode === 'hosted') RUN.mode = 'hosted';
   try {
     renderAll();                                   // saved data / baseline, instantly
-    if (location.protocol === 'file:') {
+    if (runMode === 'hosted') {
+      try { await reloadHostedSnapshot(); } catch (e) { console.warn('hosted snapshot reload failed:', e.message); RUN.error = e.message; }
+      try { RUN.fxDirect = await fetchFxDirect(); } catch (e) { console.warn('direct ECB fetch failed:', e.message); }
+      const gen = window.MACRO_SNAPSHOT && window.MACRO_SNAPSHOT.generated_at;
+      RUN.ok = !!gen; RUN.at = gen || null;
+      if (gen) showNotice('info', `Data checked by scheduled job at ${escHtml(fmtIST(gen))}` +
+        (RUN.error ? ` <span>(could not re-read newer data: ${escHtml(RUN.error)})</span>` : ''));
+      else showNotice('warn', '<strong>No published data found</strong> — showing embedded baseline only.');
+    } else if (location.protocol === 'file:') {
       RUN.mode = 'file';
       try { RUN.fxDirect = await fetchFxDirect(); } catch (e) { console.warn('direct ECB fetch failed:', e.message); }
     } else {
@@ -2666,7 +2773,7 @@ function setBadge(state, text) {
 
 function updateTimestamp() {
   const mode = { server: RUN.ok ? 'Sources checked' : 'Check failed', file: 'Opened as file (saved data)',
-                 'http-no-server': 'No server (saved data)' }[RUN.mode] || 'Loaded';
+                 'http-no-server': 'No server (saved data)', hosted: RUN.ok ? 'Scheduled job' : 'No published data' }[RUN.mode] || 'Loaded';
   document.getElementById('timestamp').textContent = `${mode}: ${fmtIST(RUN.ok ? RUN.at : new Date().toISOString())}`;
 }
 
@@ -2819,7 +2926,8 @@ function renderStatusTable() {
     const obs = x.st ? x.st.last[0] : null;
     const obsTxt = !obs ? '–' : /Annual/.test(raw.frequency || '') ? obs.slice(0, 4) : /Monthly/.test(raw.frequency || '') ? fmtMonth(obs)
                  : /Quarterly/.test(raw.frequency || '') ? `${qLabelOf(obs)} (from ${fmtDay(obs)})` : fmtDay(obs);
-    const thisLoad = RUN.mode !== 'server' ? `not checked (${RUN.mode === 'file' ? 'opened as file' : 'no server'})`
+    const thisLoad = RUN.mode === 'hosted' ? `checked by scheduled job (attempt ${fmtIST(raw.last_attempt_at)})`
+      : RUN.mode !== 'server' ? `not checked (${RUN.mode === 'file' ? 'opened as file' : 'no server'})`
       : !res ? '–'
       : res.action === 'checked' ? `fetched now · ${res.new_obs ? res.new_obs + ' new obs' : 'no newer observation'}${res.revised ? ' · ' + res.revised + ' revised' : ''}`
       : res.action === 'reused' ? `reused · ${res.reason}`
@@ -2840,7 +2948,8 @@ function renderStatusTable() {
   document.getElementById('statusTable').innerHTML =
     '<thead><tr><th>Source</th><th>Newest observation</th><th>Last success</th><th>This page load</th><th>Units &amp; transform</th><th>State</th></tr></thead><tbody>' + rows.join('') + '</tbody>';
   const mode = { server: RUN.ok ? `checked ${fmtIST(RUN.at)}${RUN.forced ? ' (manual refresh)' : ''} in ${RUN.durationMs} ms` : 'server refresh failed',
-                 file: 'opened as a file: saved data, no checks', 'http-no-server': 'no dashboard server: saved data, no checks' }[RUN.mode] || '';
+                 file: 'opened as a file: saved data, no checks', 'http-no-server': 'no dashboard server: saved data, no checks',
+                 hosted: RUN.ok ? `hosted: data checked by scheduled job at ${fmtIST(RUN.at)}` : 'hosted: no published data' }[RUN.mode] || '';
   document.getElementById('statusPanelSum').textContent = `· ${ids.length} automated sources · ${mode}`;
 }
 
