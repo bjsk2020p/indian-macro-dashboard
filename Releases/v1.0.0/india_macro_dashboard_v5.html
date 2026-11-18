@@ -1,0 +1,2851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>India + US Macro Dashboard v3</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<!-- Saved data written by refresh_data.py (also via server.py). Optional: without it the page shows embedded baseline. -->
+<script src="data/macro_snapshot.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f0ede8;
+    --surface: #ffffff;
+    --surface-2: #f7f4f0;
+    --border: #e2ddd8;
+    --text-primary: #1a1714;
+    --text-secondary: #6b6460;
+    --text-muted: #9b958f;
+    --repo: #1e40af;
+    --cpi: #dc2626;
+    --gdp: #16a34a;
+    --inr: #7c3aed;
+    --brent: #b45309;
+    --accent: #c2410c;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05);
+    --shadow-lg: 0 4px 6px rgba(0,0,0,0.05), 0 10px 40px rgba(0,0,0,0.08);
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* HEADER */
+  .header {
+    background: #1e293b;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-left { display: flex; flex-direction: column; gap: 4px; }
+
+  .header-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  .header-title {
+    font-size: clamp(13px, 2vw, 17px);
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+  }
+  .status-badge.live { background: rgba(22,163,74,0.2); color: #4ade80; border: 1px solid rgba(22,163,74,0.3); }
+  .status-badge.cached { background: rgba(234,179,8,0.2); color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
+  .status-badge.loading { background: rgba(148,163,184,0.2); color: #94a3b8; border: 1px solid rgba(148,163,184,0.3); }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .status-dot.pulse { animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .timestamp {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #64748b;
+  }
+
+  .refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.01em;
+  }
+  .refresh-btn:hover { background: #9a3412; transform: translateY(-1px); }
+  .refresh-btn:active { transform: translateY(0); }
+  .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .refresh-icon { display: inline-block; transition: transform 0.5s ease; }
+  .refresh-icon.spinning { animation: spin 0.8s linear infinite; }
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+  /* MAIN CONTENT */
+  .main { padding: 24px 32px; max-width: 1400px; margin: 0 auto; }
+
+  /* STAT CARDS */
+  .stat-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(205px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+    border-left: 3px solid var(--card-color);
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(16px);
+    animation: fadeUp 0.4s ease forwards;
+  }
+  .stat-card:nth-child(1) { animation-delay: 0.05s; }
+  .stat-card:nth-child(2) { animation-delay: 0.1s; }
+  .stat-card:nth-child(3) { animation-delay: 0.15s; }
+  .stat-card:nth-child(4) { animation-delay: 0.2s; }
+  .stat-card:nth-child(5) { animation-delay: 0.25s; }
+  @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+
+  .stat-card-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .stat-card-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--card-color);
+    line-height: 1;
+    margin-bottom: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-card-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 400;
+    line-height: 1.4;
+  }
+
+  .stat-card-change {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    margin-top: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+  .change-up { background: #fff5f5; color: #dc2626; }
+  .change-down { background: #f6fdf8; color: #16a34a; }
+  .change-flat { background: #f5f8ff; color: #1e40af; }
+
+  .stat-card-srcdot {
+    position: absolute;
+    top: 16px; right: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    letter-spacing: 0.05em;
+  }
+  .srcdot-live { background: #dcfce7; color: #15803d; }
+  .srcdot-checked { background: #dbeafe; color: #1d4ed8; }
+  .srcdot-baseline { background: #fef3c7; color: #b45309; }
+  .srcdot-snapshot { background: #e0e7ff; color: #3730a3; }
+  .srcdot-stale { background: #ffedd5; color: #9a3412; }
+  .srcdot-manual { background: #e2e8f0; color: #334155; }
+  .srcdot-unavail { background: #f1f5f9; color: #475569; }
+
+  /* CHART SECTION */
+  .chart-section {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 28px 32px;
+    box-shadow: var(--shadow-lg);
+    margin-bottom: 24px;
+    opacity: 0;
+    animation: fadeUp 0.4s ease 0.2s forwards;
+  }
+  .ext-tag {
+    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:500; letter-spacing:0.08em;
+    padding:2px 8px; border-radius:9px; margin-left:8px; vertical-align:middle;
+    background:#fef3c7; color:#92400e;
+  }
+  .ext-tag.live { background:#dcfce7; color:#15803d; }
+  .ext-tag.snapshot { background:#e0e7ff; color:#3730a3; }
+  .ext-tag.stale { background:#ffedd5; color:#9a3412; }
+  .ext-note {
+    font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-muted);
+    line-height:1.6; margin-top:12px; padding-top:10px; border-top:1px dashed var(--border);
+  }
+
+  .chart-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .chart-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .chart-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 3px;
+    font-weight: 400;
+  }
+
+  .axis-labels {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .axis-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .axis-dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+  }
+
+  .chart-container {
+    position: relative;
+    height: 420px;
+  }
+  .chart-container.short { height: 380px; }
+
+  /* LOADING OVERLAY */
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .loading-overlay.visible { opacity: 1; pointer-events: all; }
+
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  /* EVENT TIMELINE */
+  .timeline-strip {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .timeline-event {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    box-shadow: var(--shadow);
+  }
+
+  .timeline-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .timeline-quarter {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .timeline-label { font-weight: 600; color: var(--text-primary); }
+
+  /* FOOTER */
+  .footer {
+    background: #1e293b;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    border-radius: 16px;
+    opacity: 0;
+    animation: fadeUp 0.4s ease 0.3s forwards;
+  }
+
+  .footer-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 20px;
+  }
+
+  .sources-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .source-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+
+  .source-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .source-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .source-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f1f5f9;
+  }
+
+  .source-meta { font-size: 11px; color: #64748b; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; line-height: 1.5; }
+
+  .source-url {
+    font-size: 11px;
+    color: #94a3b8;
+    word-break: break-all;
+    text-decoration: none;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .source-url:hover { color: var(--accent); text-decoration: underline; }
+
+  .source-status {
+    margin-top: 10px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    line-height: 1.5;
+  }
+  .source-status.live-src { background: rgba(22,163,74,0.2); color: #4ade80; }
+  .source-status.checked-src { background: rgba(59,130,246,0.18); color: #93c5fd; }
+  .source-status.cached-src { background: rgba(234,179,8,0.15); color: #fbbf24; }
+  .source-status.snapshot-src { background: rgba(99,102,241,0.22); color: #c7d2fe; }
+  .source-status.stale-src { background: rgba(249,115,22,0.18); color: #fdba74; }
+  .source-status.manual-src { background: rgba(148,163,184,0.18); color: #e2e8f0; }
+  .source-status.unavail-src { background: rgba(148,163,184,0.12); color: #cbd5e1; }
+  .source-meta a { color: #93c5fd; }
+  /* run-mode notice (file:// / no server / refresh errors) */
+  .mode-notice { margin: 0 0 18px; padding: 12px 16px; border-radius: 10px; font-size: 13px; line-height: 1.5;
+                 background: #fff7ed; color: #7c2d12; border: 1px solid #fdba74; }
+  .mode-notice.info { background: #eff6ff; color: #1e3a8a; border-color: #93c5fd; }
+  .mode-notice code { background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; }
+  .chart-unavailable { padding: 18px; font-size: 12.5px; color: #7c2d12; background: #fff7ed; border-radius: 8px; }
+  /* source & refresh status table (dark footer) */
+  .status-panel { margin-top: 20px; }
+  .status-panel > summary { cursor: pointer; color: #f1f5f9; font-size: 13px; font-weight: 700; padding: 6px 0; }
+  .status-panel > summary:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; border-radius: 4px; }
+  .status-panel-sum { font-weight: 400; color: #cbd5e1; font-family: "JetBrains Mono", monospace; font-size: 11px; margin-left: 8px; }
+  .status-table-wrap { overflow-x: auto; margin-top: 8px; }
+  .status-table { width: 100%; border-collapse: collapse; font-family: "JetBrains Mono", monospace; font-size: 10.5px; color: #e2e8f0; }
+  .status-table th { text-align: left; color: #cbd5e1; font-weight: 600; padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.15); white-space: nowrap; }
+  .status-table td { padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.07); vertical-align: top; line-height: 1.45; }
+  .status-table a { color: #93c5fd; }
+  .status-table .err { color: #fca5a5; }
+  .status-table .muted { color: #cbd5e1; }
+
+  .footer-note {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    font-size: 11px;
+    color: #64748b;
+    line-height: 1.7;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .footer-note strong { color: #94a3b8; font-weight: 500; }
+
+  /* ════════ US MACRO IMPACT SECTION ════════ */
+  .us-section {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 24px 28px;
+    box-shadow: var(--shadow-lg);
+    margin-bottom: 24px;
+    opacity: 0;
+    animation: fadeUp 0.4s ease 0.25s forwards;
+  }
+  .us-section-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px; margin-bottom: 18px;
+    padding-bottom: 14px; border-bottom: 1px solid var(--border);
+  }
+  .us-eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500;
+    letter-spacing: 0.15em; color: var(--accent); text-transform: uppercase; margin-bottom: 4px;
+  }
+  .us-title { font-size: 16px; font-weight: 800; color: var(--text-primary); }
+  .us-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .us-status-chip {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 500;
+    padding: 5px 12px; border-radius: 20px; align-self: center;
+    background: #f1f5f9; color: #64748b; border: 1px solid var(--border);
+  }
+  .us-status-chip.has-live { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
+
+  /* impact score row */
+  .us-scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap: 14px; margin-bottom: 20px; }
+  .us-score-card {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 18px;
+  }
+  .us-score-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .us-score-asset { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .us-score-num { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .us-score-track { height: 8px; border-radius: 4px; position: relative; margin-bottom: 8px;
+    background: linear-gradient(90deg,#dc2626 0%,#f59e0b 35%,#9b958f 50%,#84cc16 65%,#16a34a 100%); opacity: 0.9; }
+  .us-score-marker { position: absolute; top: -3px; width: 4px; height: 14px; border-radius: 2px;
+    background: var(--text-primary); box-shadow: 0 0 0 2px var(--surface-2); transform: translateX(-50%); }
+  .us-score-verdict { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 500; margin-bottom: 8px; }
+  .v-sbear { color:#dc2626 } .v-bear { color:#ea580c } .v-neut { color:#6b6460 } .v-bull { color:#65a30d } .v-sbull { color:#16a34a }
+  .us-score-comps { display:flex; flex-wrap:wrap; gap:5px; }
+  .us-comp-chip {
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; padding:2px 7px; border-radius:4px;
+    background:var(--surface); border:1px solid var(--border); color:var(--text-secondary);
+  }
+  .us-comp-chip.neg { color:#dc2626; border-color:#fecaca; background:#fff5f5; }
+  .us-comp-chip.pos { color:#16a34a; border-color:#bbf7d0; background:#f6fdf8; }
+  .us-comp-chip.excl { color:#475569; border-color:#cbd5e1; background:#f8fafc; border-style:dashed; }
+  .us-score-withheld { font-family:"JetBrains Mono",monospace; font-size:11px; color:#7c2d12; background:#fff7ed;
+                       border:1px solid #fdba74; border-radius:6px; padding:6px 8px; margin-bottom:8px; }
+
+  /* indicator cards */
+  .us-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(205px,1fr)); gap:14px; margin-bottom:20px; }
+  .us-card {
+    background: var(--surface); border:1px solid var(--border); border-left:3px solid var(--card-color);
+    border-radius:12px; padding:16px 18px; position:relative; box-shadow: var(--shadow);
+  }
+  .us-card-label {
+    font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:500; letter-spacing:0.12em;
+    text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; padding-right:64px;
+  }
+  .us-card-value { font-size:25px; font-weight:800; color:var(--card-color); line-height:1;
+    font-variant-numeric:tabular-nums; display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .us-trend { font-size:16px; font-weight:700; }
+  .t-hawk { color:#dc2626 } .t-dove { color:#16a34a } .t-flat { color:#9b958f }
+  .us-card-rows { display:flex; flex-direction:column; gap:4px; }
+  .us-card-row { display:flex; justify-content:space-between; font-size:11px; }
+  .us-card-row .k { color:var(--text-muted); }
+  .us-card-row .v { font-family:'JetBrains Mono',monospace; font-weight:500; color:var(--text-secondary); font-variant-numeric:tabular-nums; }
+  .us-card-row .v.up { color:#dc2626 } .us-card-row .v.down { color:#16a34a }
+  .us-card-updated { margin-top:8px; padding-top:8px; border-top:1px dashed var(--border);
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--text-muted); }
+
+  /* recent changes panel */
+  .us-recent { background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:14px; }
+  .us-recent-head { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
+  .us-recent-title { font-size:13.5px; font-weight:700; }
+  .us-recent-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .us-tabs { display:flex; gap:6px; }
+  .us-tab {
+    font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:500; padding:5px 14px;
+    border-radius:6px; border:1px solid var(--border); background:var(--surface);
+    color:var(--text-secondary); cursor:pointer; transition:all .15s ease;
+  }
+  .us-tab.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .us-table-wrap { overflow-x:auto; }
+  table.us-table { width:100%; border-collapse:collapse; font-size:11.5px; min-width:760px; }
+  .us-table th {
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:500; letter-spacing:0.08em;
+    text-transform:uppercase; color:var(--text-muted); text-align:left; padding:7px 10px;
+    border-bottom:1px solid var(--border); white-space:nowrap;
+  }
+  .us-table td { padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  .us-table tr:last-child td { border-bottom:none; }
+  .us-table .mono { font-family:'JetBrains Mono',monospace; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .us-table .chg.up { color:#dc2626; font-weight:600 } .us-table .chg.down { color:#16a34a; font-weight:600 }
+  .us-ind-cell { font-weight:600; color:var(--text-primary); white-space:nowrap; }
+  .us-afp { font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--text-muted); margin-top:3px; white-space:nowrap; }
+  .us-afp .sur-pos { color:#dc2626; font-weight:600 } .us-afp .sur-neg { color:#16a34a; font-weight:600 }
+  .pill { font-family:'JetBrains Mono',monospace; font-size:9px; padding:2px 7px; border-radius:9px; white-space:nowrap; }
+  .pill.bull { background:#dcfce7; color:#15803d } .pill.bear { background:#fee2e2; color:#b91c1c } .pill.neut { background:#f1f5f9; color:#64748b }
+  .us-row-src { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--text-muted); }
+  .us-empty { font-size:12px; color:var(--text-muted); padding:14px 4px; font-style:italic; }
+
+  /* monthly trends mini-charts */
+  .us-trends { background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:14px; }
+  .us-trends-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px; }
+  .us-trend-card {
+    background:var(--surface); border:1px solid var(--border); border-top:3px solid var(--tc, var(--border));
+    border-radius:10px; padding:12px 14px 10px; box-shadow:var(--shadow); position:relative;
+  }
+  .us-trend-label {
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:500; letter-spacing:0.1em;
+    text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; padding-right:58px;
+  }
+  .us-trend-tag {
+    position:absolute; top:10px; right:12px; font-family:'JetBrains Mono',monospace; font-size:8.5px;
+    font-weight:500; padding:2px 7px; border-radius:8px; background:#fef3c7; color:#92400e;
+  }
+  .us-trend-tag.live { background:#dcfce7; color:#15803d; }
+  .us-trend-tag.snapshot { background:#e0e7ff; color:#3730a3; }
+  .us-trend-tag.stale { background:#ffedd5; color:#9a3412; }
+  .us-trend-canvas-wrap { position:relative; height:130px; }
+  .us-trend-note { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--text-muted); margin-top:6px; }
+
+  /* surprise tracker · bullet panels */
+  .us-surprise { background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:14px; }
+  .us-bullet-panel { margin-bottom:14px; }
+  .us-bullet-head {
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; letter-spacing:0.06em;
+    color:var(--text-secondary); margin-bottom:6px;
+  }
+  .us-bullet-unit { color:var(--text-muted); font-size:9.5px; }
+  .us-bullet-wrap { position:relative; height:150px; }
+  .us-surprise-legend { display:flex; flex-wrap:wrap; gap:14px; margin:4px 0 12px;
+    font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-secondary); }
+  .us-surprise-legend .sw { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px; }
+
+  /* impact tracker */
+  .us-impact { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin:6px 0 4px; }
+  .us-impact-title { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:500; color:var(--text-secondary); margin-bottom:12px; letter-spacing:0.04em; }
+  .us-impact-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .us-impact-card { border:1px solid var(--border); border-left:3px solid var(--ic,#9b958f); border-radius:8px; padding:10px 12px; background:var(--surface-2); }
+  .us-impact-asset { font-size:12px; font-weight:700; color:var(--text-primary); margin-bottom:4px; }
+  .us-impact-verdict { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:500; display:flex; align-items:center; gap:6px; margin-bottom:5px; }
+  .us-impact-verdict .arr { font-size:15px; }
+  .iv-tail { color:#16a34a } .iv-head { color:#dc2626 } .iv-neut { color:#6b6460 }
+  .us-impact-reason { font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--text-muted); line-height:1.5; }
+
+  .us-foot {
+    font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-muted);
+    line-height:1.7; padding-top:12px; border-top:1px solid var(--border);
+  }
+  .us-foot strong { color:var(--text-secondary); font-weight:500; }
+  .us-foot a { color:var(--text-secondary); }
+  @media (max-width:768px){ .us-section { padding:18px 14px; } .us-card-label { padding-right:0; } }
+
+  @media (max-width: 768px) {
+    .header { padding: 16px 20px; }
+    .main { padding: 16px 20px; }
+    .stat-cards { grid-template-columns: 1fr; }
+    .chart-section { padding: 20px 16px; }
+    .chart-container { height: 320px; }
+    .chart-container.short { height: 300px; }
+    .footer { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-left">
+    <span class="header-eyebrow">RBI · MOSPI · World Bank · ECB Reference Rates</span>
+    <h1 class="header-title">India + US Macro Dashboard &nbsp;/&nbsp; Repo · CPI · GDP · USD/INR · Brent + US Spillover &nbsp;(Q1 2021 – <span id="axisEnd">Q1 2026</span>)</h1>
+  </div>
+  <div class="header-right">
+    <span class="timestamp" id="timestamp">–</span>
+    <div class="status-badge loading" id="statusBadge">
+      <span class="status-dot pulse" id="statusDot"></span>
+      <span id="statusText">Loading…</span>
+    </div>
+    <button class="refresh-btn" id="refreshBtn" onclick="loadAllData(true)" title="Re-check every source now (sources checked in the last 30 s are reused)">
+      <span class="refresh-icon" id="refreshIcon">🔄</span>
+      Refresh Data
+    </button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- Run-mode notice: filled immediately for file://, later for server/refresh problems -->
+  <div class="mode-notice" id="modeNotice" role="status" hidden></div>
+  <script>
+    if (location.protocol === 'file:') {
+      const n = document.getElementById('modeNotice');
+      n.innerHTML = '<strong>Opened directly as a file — showing saved data only, no automatic updates.</strong> ' +
+        'A web page cannot start the local updater by itself. For automatic updates, close this tab and double-click ' +
+        '<code>Open_Indian_Macro_Dashboard.cmd</code> in the dashboard folder.';
+      n.hidden = false;
+    }
+  </script>
+
+  <!-- STAT CARDS -->
+  <div class="stat-cards">
+    <div class="stat-card" style="--card-color: var(--repo)">
+      <span class="stat-card-srcdot srcdot-baseline" id="repoDot">BASELINE</span>
+      <div class="stat-card-label">RBI Repo Rate</div>
+      <div class="stat-card-value" id="repoLatest">–</div>
+      <div class="stat-card-sub" id="repoSub">–</div>
+      <div class="stat-card-change change-down" id="repoChange">–</div>
+    </div>
+    <div class="stat-card" style="--card-color: var(--cpi)">
+      <span class="stat-card-srcdot srcdot-baseline" id="cpiDot">BASELINE</span>
+      <div class="stat-card-label">CPI Inflation (YoY)</div>
+      <div class="stat-card-value" id="cpiLatest">–</div>
+      <div class="stat-card-sub" id="cpiSub">–</div>
+      <div class="stat-card-change" id="cpiChange">–</div>
+    </div>
+    <div class="stat-card" style="--card-color: var(--gdp)">
+      <span class="stat-card-srcdot srcdot-baseline" id="gdpDot">BASELINE</span>
+      <div class="stat-card-label">Real GDP (YoY)</div>
+      <div class="stat-card-value" id="gdpLatest">–</div>
+      <div class="stat-card-sub" id="gdpSub">–</div>
+      <div class="stat-card-change change-flat" id="gdpChange">–</div>
+    </div>
+    <div class="stat-card" style="--card-color: var(--inr)">
+      <span class="stat-card-srcdot srcdot-baseline" id="inrDot">BASELINE</span>
+      <div class="stat-card-label">USD / INR</div>
+      <div class="stat-card-value" id="inrLatest">–</div>
+      <div class="stat-card-sub" id="inrSub">–</div>
+      <div class="stat-card-change" id="inrChange">–</div>
+    </div>
+    <div class="stat-card" style="--card-color: var(--brent)">
+      <span class="stat-card-srcdot srcdot-baseline" id="brentDot">BASELINE</span>
+      <div class="stat-card-label">Brent ($/bbl)</div>
+      <div class="stat-card-value" id="brentLatest">–</div>
+      <div class="stat-card-sub" id="brentSub">–</div>
+      <div class="stat-card-change" id="brentChange">–</div>
+    </div>
+  </div>
+
+  <!-- TIMELINE EVENTS -->
+  <div class="timeline-strip">
+    <div class="timeline-event">
+      <div class="timeline-dot" style="background:#1e40af"></div>
+      <span class="timeline-quarter">Q1 2021</span>
+      <span class="timeline-label">Pandemic-Low Hold · 4.00%</span>
+    </div>
+    <div class="timeline-event">
+      <div class="timeline-dot" style="background:#dc2626"></div>
+      <span class="timeline-quarter">Q2 2022</span>
+      <span class="timeline-label">Rate Hike Cycle Begins</span>
+    </div>
+    <div class="timeline-event">
+      <div class="timeline-dot" style="background:#9333ea"></div>
+      <span class="timeline-quarter">Q1 2023</span>
+      <span class="timeline-label">Peak Rate · 6.50%</span>
+    </div>
+    <div class="timeline-event">
+      <div class="timeline-dot" style="background:#16a34a"></div>
+      <span class="timeline-quarter">Q1 2025</span>
+      <span class="timeline-label">Rate Cut Cycle Begins</span>
+    </div>
+    <div class="timeline-event">
+      <div class="timeline-dot" style="background:#7c3aed"></div>
+      <span class="timeline-quarter">Q3 2025</span>
+      <span class="timeline-label">₹ Slides Past 88/$</span>
+    </div>
+    <div class="timeline-event">
+      <div class="timeline-dot" style="background:#b45309"></div>
+      <span class="timeline-quarter">Mar 2026</span>
+      <span class="timeline-label">Hormuz Closure · Brent $103.7 avg</span>
+    </div>
+    <div class="timeline-event">
+      <div class="timeline-dot" style="background:#c2410c"></div>
+      <span class="timeline-quarter">Jun 2026</span>
+      <span class="timeline-label">MPC Holds 5.25% · ₹ Low 96.8 (20-May)</span>
+    </div>
+  </div>
+
+  <!-- CHART 1: MONETARY / DOMESTIC -->
+  <div class="chart-section">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Monetary &amp; Domestic Indicators · India</div>
+        <div class="chart-subtitle">Quarterly · All values in % · Hover any point for exact readings</div>
+      </div>
+      <div class="axis-labels">
+        <div class="axis-label"><div class="axis-dot" style="background:#1e40af"></div>Repo Rate (Left)</div>
+        <div class="axis-label"><div class="axis-dot" style="background:#dc2626"></div>CPI Inflation (Left)</div>
+        <div class="axis-label"><div class="axis-dot" style="background:#16a34a"></div>GDP Growth (Right)</div>
+      </div>
+    </div>
+    <div class="chart-container">
+      <div class="loading-overlay" id="loadingOverlay1"><div class="spinner"></div></div>
+      <canvas id="macroChart"></canvas>
+    </div>
+  </div>
+
+  <!-- CHART 2: EXTERNAL SECTOR · MONTHLY -->
+  <div class="chart-section">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">External Sector · USD/INR &amp; Brent Crude <span class="ext-tag" id="extMonTag">BASELINE</span></div>
+        <div class="chart-subtitle">Monthly · INR = month-end ECB reference rate · Brent = monthly average $/bbl · from Jan 2021</div>
+      </div>
+      <div class="axis-labels">
+        <div class="axis-label"><div class="axis-dot" style="background:#7c3aed"></div>USD/INR (Left)</div>
+        <div class="axis-label"><div class="axis-dot" style="background:#b45309"></div>Brent $/bbl (Right)</div>
+      </div>
+    </div>
+    <div class="chart-container short">
+      <div class="loading-overlay" id="loadingOverlay2"><div class="spinner"></div></div>
+      <canvas id="externalMonthlyChart"></canvas>
+    </div>
+    <div class="ext-note" id="extMonNote">–</div>
+  </div>
+
+  <!-- CHART 3: EXTERNAL SECTOR · DAILY (USD/INR + DXY) -->
+  <div class="chart-section">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">External Sector · USD/INR &amp; Dollar Index (DXY) <span class="ext-tag" id="extDailyTag">BASELINE</span></div>
+        <div class="chart-subtitle">Daily · INR = ECB reference rate · DXY = ICE formula on ECB rates · from Jan 2021 · Brent has no no-key daily feed (kept on monthly)</div>
+      </div>
+      <div class="axis-labels">
+        <div class="axis-label"><div class="axis-dot" style="background:#7c3aed"></div>USD/INR (Left)</div>
+        <div class="axis-label"><div class="axis-dot" style="background:#0e7490"></div>DXY (Right)</div>
+      </div>
+    </div>
+    <div class="chart-container short">
+      <canvas id="externalDailyChart"></canvas>
+    </div>
+    <div class="ext-note" id="extDailyNote">–</div>
+  </div>
+
+  <!-- ════════ US MACRO IMPACT SECTION ════════ -->
+  <div class="us-section">
+    <div class="us-section-header">
+      <div>
+        <div class="us-eyebrow">FRED · BLS · BEA · ICE Formula on ECB Rates · FF Calendar</div>
+        <div class="us-title">US Macro Impact &nbsp;/&nbsp; CPI · Core PCE · NFP · Real Yield · DXY</div>
+        <div class="us-subtitle">Spillover monitor for Gold, Silver &amp; Indian Equities · baseline paints instantly, live patches stream in per-series</div>
+      </div>
+      <div class="us-status-chip" id="usStatusChip">Loading…</div>
+    </div>
+
+    <!-- MACRO IMPACT SCORES -->
+    <div class="us-scores" id="usScores">
+      <div class="us-score-card" id="usScoreGold"></div>
+      <div class="us-score-card" id="usScoreSilver"></div>
+      <div class="us-score-card" id="usScoreEq"></div>
+    </div>
+
+    <!-- INDICATOR CARDS -->
+    <div class="us-cards">
+      <div class="us-card" style="--card-color:#dc2626">
+        <span class="stat-card-srcdot srcdot-baseline" id="usCpiDot">BASELINE</span>
+        <div class="us-card-label">US CPI (YoY)</div>
+        <div class="us-card-value"><span id="usCpiVal">–</span><span class="us-trend" id="usCpiTrend"></span></div>
+        <div class="us-card-rows">
+          <div class="us-card-row"><span class="k">Previous</span><span class="v" id="usCpiPrev">–</span></div>
+          <div class="us-card-row"><span class="k">Weekly Δ</span><span class="v" id="usCpiWk">n/a · monthly series</span></div>
+          <div class="us-card-row"><span class="k">Monthly Δ</span><span class="v" id="usCpiMo">–</span></div>
+        </div>
+        <div class="us-card-updated" id="usCpiUpd">–</div>
+      </div>
+
+      <div class="us-card" style="--card-color:#9333ea">
+        <span class="stat-card-srcdot srcdot-baseline" id="usPceDot">BASELINE</span>
+        <div class="us-card-label">Core PCE (YoY)</div>
+        <div class="us-card-value"><span id="usPceVal">–</span><span class="us-trend" id="usPceTrend"></span></div>
+        <div class="us-card-rows">
+          <div class="us-card-row"><span class="k">Previous</span><span class="v" id="usPcePrev">–</span></div>
+          <div class="us-card-row"><span class="k">Weekly Δ</span><span class="v" id="usPceWk">n/a · monthly series</span></div>
+          <div class="us-card-row"><span class="k">Monthly Δ</span><span class="v" id="usPceMo">–</span></div>
+        </div>
+        <div class="us-card-updated" id="usPceUpd">–</div>
+      </div>
+
+      <div class="us-card" style="--card-color:#0e7490">
+        <span class="stat-card-srcdot srcdot-baseline" id="usNfpDot">BASELINE</span>
+        <div class="us-card-label">Nonfarm Payrolls</div>
+        <div class="us-card-value"><span id="usNfpVal">–</span><span class="us-trend" id="usNfpTrend"></span></div>
+        <div class="us-card-rows">
+          <div class="us-card-row"><span class="k">Previous</span><span class="v" id="usNfpPrev">–</span></div>
+          <div class="us-card-row"><span class="k">Weekly Δ</span><span class="v" id="usNfpWk">n/a · monthly series</span></div>
+          <div class="us-card-row"><span class="k">Monthly Δ</span><span class="v" id="usNfpMo">–</span></div>
+        </div>
+        <div class="us-card-updated" id="usNfpUpd">–</div>
+      </div>
+
+      <div class="us-card" style="--card-color:#b45309">
+        <span class="stat-card-srcdot srcdot-baseline" id="usRyDot">BASELINE</span>
+        <div class="us-card-label">Real Yield · 10Y TIPS</div>
+        <div class="us-card-value"><span id="usRyVal">–</span><span class="us-trend" id="usRyTrend"></span></div>
+        <div class="us-card-rows">
+          <div class="us-card-row"><span class="k">Previous</span><span class="v" id="usRyPrev">–</span></div>
+          <div class="us-card-row"><span class="k">Weekly Δ</span><span class="v" id="usRyWk">–</span></div>
+          <div class="us-card-row"><span class="k">Monthly Δ</span><span class="v" id="usRyMo">–</span></div>
+        </div>
+        <div class="us-card-updated" id="usRyUpd">–</div>
+      </div>
+
+      <div class="us-card" style="--card-color:#1e40af">
+        <span class="stat-card-srcdot srcdot-baseline" id="usDxyDot">BASELINE</span>
+        <div class="us-card-label">Dollar Index · DXY</div>
+        <div class="us-card-value"><span id="usDxyVal">–</span><span class="us-trend" id="usDxyTrend"></span></div>
+        <div class="us-card-rows">
+          <div class="us-card-row"><span class="k">Previous</span><span class="v" id="usDxyPrev">–</span></div>
+          <div class="us-card-row"><span class="k">Weekly Δ</span><span class="v" id="usDxyWk">–</span></div>
+          <div class="us-card-row"><span class="k">Monthly Δ</span><span class="v" id="usDxyMo">–</span></div>
+        </div>
+        <div class="us-card-updated" id="usDxyUpd">–</div>
+      </div>
+    </div>
+
+    <!-- MONTHLY TRENDS -->
+    <div class="us-trends">
+      <div class="us-recent-head">
+        <div>
+          <div class="us-recent-title">Monthly Trends · Per-Indicator History</div>
+          <div class="us-recent-sub">Live FRED/ECB series when fetched (up to 13 months) · verified-print baseline otherwise (short series, no interpolation)</div>
+        </div>
+      </div>
+      <div class="us-trends-grid">
+        <div class="us-trend-card" style="--tc:#6b6460; grid-column:1 / -1">
+          <span class="us-trend-tag" id="usTrendInflTag">BASELINE</span>
+          <div class="us-trend-label">Inflation &amp; Real Rate · YoY % (CPI · Core PCE · Real Yield 10Y)</div>
+          <div class="us-surprise-legend" style="margin:2px 0 6px">
+            <span><span class="sw" style="background:#dc2626"></span>US CPI</span>
+            <span><span class="sw" style="background:#9333ea"></span>Core PCE</span>
+            <span><span class="sw" style="background:#b45309"></span>Real Yield 10Y</span>
+          </div>
+          <div class="us-trend-canvas-wrap" style="height:180px"><canvas id="usTrendInfl"></canvas></div>
+          <div class="us-trend-note" id="usTrendInflNote">–</div>
+        </div>
+        <div class="us-trend-card" style="--tc:#0e7490">
+          <span class="us-trend-tag" id="usTrendNfpTag">BASELINE</span>
+          <div class="us-trend-label">Nonfarm Payrolls · K/mo</div>
+          <div class="us-trend-canvas-wrap"><canvas id="usTrendNfp"></canvas></div>
+          <div class="us-trend-note" id="usTrendNfpNote">–</div>
+        </div>
+        <div class="us-trend-card" style="--tc:#1e40af">
+          <span class="us-trend-tag" id="usTrendDxyTag">BASELINE</span>
+          <div class="us-trend-label">Dollar Index · ECB Formula</div>
+          <div class="us-trend-canvas-wrap"><canvas id="usTrendDxy"></canvas></div>
+          <div class="us-trend-note" id="usTrendDxyNote">–</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECENT CHANGES -->
+    <div class="us-recent">
+      <div class="us-recent-head">
+        <div>
+          <div class="us-recent-title">Recent Changes · Releases &amp; Significant Market Moves</div>
+          <div class="us-recent-sub">Economic releases show Actual / Forecast / Previous / Surprise · impact pills are model output, not advice</div>
+        </div>
+        <div class="us-tabs">
+          <button class="us-tab active" id="usTab7" onclick="usSetWindow(7)">7 Days</button>
+          <button class="us-tab" id="usTab30" onclick="usSetWindow(30)">30 Days</button>
+        </div>
+      </div>
+      <div class="us-table-wrap">
+        <table class="us-table">
+          <thead><tr>
+            <th>Date</th><th>Indicator</th><th>Previous</th><th>New</th><th>Change</th>
+            <th>Gold</th><th>Silver</th><th>IN Equities</th><th>Src</th>
+          </tr></thead>
+          <tbody id="usTimelineBody"></tbody>
+        </table>
+      </div>
+      <div class="us-empty" id="usTimelineEmpty" style="display:none">No significant updates in this window.</div>
+    </div>
+
+    <!-- SURPRISE TRACKER -->
+    <div class="us-surprise">
+      <div class="us-recent-head">
+        <div>
+          <div class="us-recent-title">Surprise Tracker · Actual vs Forecast (Bullet)</div>
+          <div class="us-recent-sub">Grey tick = consensus forecast · filled bar = actual print · hollow/dashed = upcoming (auto-fills on release) · true time axis (spacing = calendar days) · + = hawkish</div>
+        </div>
+      </div>
+      <div class="us-surprise-legend">
+        <span><span class="sw" style="background:#dc2626"></span>Hawkish (actual &gt; fcst)</span>
+        <span><span class="sw" style="background:#16a34a"></span>Dovish (actual &lt; fcst)</span>
+        <span><span class="sw" style="background:#9b958f"></span>In line</span>
+        <span><span class="sw" style="border:1.5px dashed #6b6460;background:transparent"></span>Upcoming · consensus</span>
+        <span><span style="display:inline-block;width:14px;border-top:2px solid #6b6460;vertical-align:3px;margin-right:5px"></span>Forecast tick</span>
+      </div>
+
+      <div class="us-bullet-panel">
+        <div class="us-bullet-head">Inflation Surprise · CPI / Core CPI / Core PCE <span class="us-bullet-unit">YoY %, pp</span></div>
+        <div class="us-bullet-wrap"><canvas id="usSurpriseInfl"></canvas></div>
+      </div>
+      <div class="us-bullet-panel">
+        <div class="us-bullet-head">Labor Market Surprise · Nonfarm Payrolls <span class="us-bullet-unit">K jobs</span></div>
+        <div class="us-bullet-wrap"><canvas id="usSurpriseNfp"></canvas></div>
+      </div>
+
+      <!-- IMPACT TRACKER -->
+      <div class="us-impact">
+        <div class="us-impact-title">Impact Tracker · recent surprise sequence → expected asset headwind / tailwind</div>
+        <div class="us-impact-grid" id="usImpactGrid"></div>
+        <div class="us-trend-note" id="usImpactNote">–</div>
+      </div>
+
+      <div class="us-trend-note" id="usSurpriseNote">–</div>
+    </div>
+
+    <div class="us-foot" id="usFoot">
+      <strong>Sources:</strong> CPI = FRED CPIAUCNS (NSA, BLS basis) · Core PCE = FRED PCEPILFE · NFP = FRED PAYEMS month-over-month change (reflects revisions) · Real Yield = FRED DFII10 (H.15) · DXY = computed live from ECB reference rates (Frankfurter, no key) via the official ICE weights — typically within ±0.3 of ICE futures DXY · Consensus = manual log (<code>US_RELEASES</code> / <code>US_UPCOMING</code>); no automated consensus feed is used.<br>
+      <strong>Fetch path:</strong> the local server (<code>Open_Indian_Macro_Dashboard.cmd</code>) fetches FRED server-side on every page open/reload, within each series' reuse window, and saves validated data to <code>data/macro_snapshot.js</code>. No public CORS proxies are used. DXY is an <em>estimate</em> from ECB reference rates with the ICE weights (50.14348112 × EURUSD^−0.576 × USDJPY^0.136 × GBPUSD^−0.119 × USDCAD^0.091 × USDSEK^0.042 × USDCHF^0.036), not the traded index. Consensus forecasts are <strong>manual</strong> (<code>US_RELEASES</code> / <code>US_UPCOMING</code>): the ForexFactory feed refuses automated clients and is not bypassed. Baseline values verified <span id="usVintage">–</span>; per the no-interpolation rule, deltas needing a daily series show n/a in BASELINE mode rather than estimated values.<br>
+      <strong>Impact Score:</strong> 0–100 (50 = neutral), weighted on Real-Yield trend &amp; level, DXY 30-day trend, latest CPI surprise and NFP surprise. Weights are in <code>US_SCORE_WEIGHTS</code> in the source. Known blind spot: the model does not capture safe-haven bids (e.g. war escalation can lift gold even with rising real yields).<br>
+      <strong>Surprise Tracker:</strong> two bullet panels — filled bar = Actual print, grey tick = Forecast (consensus), gap = surprise; inflation (CPI/Core CPI/Core PCE, pp) on top, NFP (K jobs) below. Upcoming releases from <code>US_UPCOMING</code> (+ live FF) render as dashed hollow bars that auto-fill once <code>US_RELEASES</code> gains the dated actual. True time axis (<code>type:'time'</code> via date-fns adapter) so horizontal spacing = real calendar days; same-day prints are nudged ±days to de-collide. Sign convention: + = hawkish. Blind spot: a "0.0pp" surprise can still move markets via positioning or internals (core MoM, revisions) — revisions (e.g. NFP Apr 115K→179K) are a separate channel not shown as a bar.<br>
+      <strong>Impact Tracker:</strong> maps the recent surprise sequence (last 3 inflation prints + last NFP + DXY trend) to Gold ETFs, Silver ETFs, Nifty Next 50 and Small Caps as headwind/tailwind. Rule-based and directional only — not advice; safe-haven bids and FII positioning can override. Small caps are flagged most DXY/liquidity-sensitive.<br>
+      <strong>Monthly Trends:</strong> CPI + Core PCE + Real Yield share one % chart (gaps left null, no interpolation); NFP (K jobs) and DXY (index) kept separate as their scales don't mix. Tags use the same states as the cards (LATEST / CACHED / SNAPSHOT / STALE / BASELINE). YoY is matched by calendar month, so a month FRED lacks (e.g. Oct-2025 CPI, never published) yields no point rather than a 13-month change.
+    </div>
+  </div>
+
+  <!-- DATA SOURCES FOOTER -->
+  <div class="footer">
+    <div class="footer-title">▸ Data Sources, Provenance &amp; Methodology</div>
+    <div class="sources-grid">
+
+      <div class="source-card">
+        <div class="source-indicator">
+          <div class="source-dot" style="background:#1e40af"></div>
+          <div class="source-name">RBI Repo Rate</div>
+        </div>
+        <div class="source-meta">Card: current Policy Repo Rate read from the RBI home page "Current Rates" block by the local server (validated: SDF &lt; repo &lt; MSF). The page does not state the decision's effective date, so none is shown.</div>
+        <div class="source-meta">Chart: quarter-end levels from verified MPC decisions, maintained manually in <code>FALLBACK.repo</code>. Quarters after the last verified decision are left blank, never estimated.</div>
+        <a class="source-url" href="https://www.rbi.org.in/" target="_blank">rbi.org.in · Current Rates</a>
+        <div class="source-status cached-src" id="repoSrcStatus">◆ Baseline</div>
+      </div>
+
+      <div class="source-card">
+        <div class="source-indicator">
+          <div class="source-dot" style="background:#dc2626"></div>
+          <div class="source-name">CPI Inflation (YoY)</div>
+        </div>
+        <div class="source-meta">Series: MoSPI CPI (General), All-India, Combined (rural+urban). Card = latest monthly YoY as published. Chart = mean of the quarter's 3 monthly YoY prints (complete quarters only).</div>
+        <div class="source-meta">Base break: Jan 2021–Dec 2025 from base 2012; Jan 2026 onward from base 2024 (MoSPI's published YoY). Growth rates are shown, not spliced index levels.</div>
+        <div class="source-meta">Cross-check: World Bank FP.CPI.TOTL.ZG annual (calendar year) vs the chart's calendar-year average. Never replaces the chart.</div>
+        <a class="source-url" href="https://esankhyiki.mospi.gov.in/macroindicators?product=cpi" target="_blank">esankhyiki.mospi.gov.in · CPI</a>
+        <div class="source-status cached-src" id="cpiSrcStatus">◆ Baseline</div>
+      </div>
+
+      <div class="source-card">
+        <div class="source-indicator">
+          <div class="source-dot" style="background:#16a34a"></div>
+          <div class="source-name">GDP Growth (YoY)</div>
+        </div>
+        <div class="source-meta">Series: MoSPI National Accounts, quarterly GDP at constant prices (real). YoY = level ÷ same quarter a year earlier − 1. Fiscal Q1 (Apr–Jun) is plotted as calendar Q2.</div>
+        <div class="source-meta">Base: 2022-23 series where both quarters exist (Apr–Jun 2023 onward); earlier quarters from the superseded 2011-12 series. Latest estimates as revised by MoSPI, not first prints.</div>
+        <div class="source-meta">Cross-check: World Bank NY.GDP.MKTP.KD.ZG (India fiscal year) vs the chart's Apr–Mar average. Never replaces the chart.</div>
+        <a class="source-url" href="https://esankhyiki.mospi.gov.in/macroindicators?product=nas" target="_blank">esankhyiki.mospi.gov.in · National Accounts</a>
+        <div class="source-status cached-src" id="gdpSrcStatus">◆ Baseline</div>
+      </div>
+
+      <div class="source-card">
+        <div class="source-indicator">
+          <div class="source-dot" style="background:#7c3aed"></div>
+          <div class="source-name">USD / INR</div>
+        </div>
+        <div class="source-meta">ECB euro reference rates (published ≈16:00 CET on TARGET business days) via Frankfurter, crossed to USD. A daily reference rate, not a live market quote. Chart = last reference rate on or before each quarter end.</div>
+        <div class="source-meta">Note: ECB reference ≠ FBIL/RBI rate — typically differs by a few paise; published ~16:00 CET working days.</div>
+        <a class="source-url" href="https://api.frankfurter.dev/v1/latest?base=USD&symbols=INR" target="_blank">api.frankfurter.dev · USD→INR</a>
+        <div class="source-status cached-src" id="inrSrcStatus">◆ Baseline</div>
+      </div>
+
+      <div class="source-card">
+        <div class="source-indicator">
+          <div class="source-dot" style="background:#b45309"></div>
+          <div class="source-name">Brent Crude</div>
+        </div>
+        <div class="source-meta">FRED <a href="https://fred.stlouisfed.org/series/MCOILBRENTEU" target="_blank">MCOILBRENTEU</a> (EIA Europe Brent spot, monthly average of daily prices, $/bbl). Card = latest monthly average, not a current price. Chart quarter = mean of 3 complete months; incomplete quarters keep the baseline. EIA spot and Pink Sheet averages differ slightly.</div>
+        <div class="source-meta">Baseline: WB Pink Sheet (Apr-2026 edition) quarterly averages, verified through Q1 2026.</div>
+        <a class="source-url" href="https://www.worldbank.org/en/research/commodity-markets" target="_blank">worldbank.org · Commodity Markets (Pink Sheet)</a>
+        <div class="source-status cached-src" id="brentSrcStatus">◆ Baseline</div>
+      </div>
+
+    </div>
+    <details class="status-panel" id="statusPanel" open>
+      <summary>Source &amp; refresh status<span class="status-panel-sum" id="statusPanelSum"></span></summary>
+      <div class="status-table-wrap"><table class="status-table" id="statusTable"></table></div>
+    </details>
+    <div class="footer-note">
+      <strong>Provenance:</strong> LATEST = the provider was checked during this page load (or within the source's reuse window) and this is its newest published observation · CACHED = saved data shown because this load's check failed · SNAPSHOT = saved data, not re-checked (opened as a file or server unavailable) · STALE = a newer release is overdue for this series' publication schedule · BASELINE = embedded data (verified <span id="vintageDate">–</span>) · MANUAL = maintained by hand · UNAVAILABLE = no usable data.
+      Checking a source is not the same as receiving new data: the status table shows when each source was checked and whether a newer observation arrived. The header badge counts per-card states; one successful provider never turns the whole dashboard green.<br>
+      <strong>Methodology:</strong> No annual-to-quarterly scaling or interpolation is performed anywhere (removed in v2) — quarterly values are either genuine API observations or curated baseline from primary publications.
+      WB India conventions differ by series: CPI annual ≈ calendar-year average; GDP annual = India fiscal year (Apr–Mar, labelled by starting year). A ⚠ divergence flag appears if cross-check differs from baseline by &gt;0.8 pp — if triggered, re-verify the basis before relying on either number.
+      Historical values are the latest revised estimates from each provider, not first prints. localStorage is not used; saved data lives in <code>data/macro_snapshot.js</code>, written atomically by the local updater.
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   MAINTENANCE NOTES — manual touchpoints (review ~6×/year)
+   ─────────────────────────────────────────────────────────────────────────────
+   AUTOMATED (local server / refresh_data.py — see the status table on the page):
+     CPI chart + card  ← MoSPI CPI base 2012 (to Dec 2025) and base 2024 (from Jan 2026)
+     GDP chart + card  ← MoSPI NAS quarterly real GDP, base 2022-23 (2011-12 for older quarters)
+     Repo card         ← RBI home page "Current Rates" (current level only, no effective date)
+     USD/INR, DXY      ← ECB reference rates (Frankfurter);  Brent ← FRED MCOILBRENTEU
+     FALLBACK.cpi/gdp/usdinr/brent are now only the offline baseline when no saved data exists.
+   STILL MANUAL:
+   1. FALLBACK.repo  → update after each RBI MPC (Feb/Apr/Jun/Aug/Oct/Dec).
+                       This is the quarter-end HISTORY for the chart; the card reads
+                       the current rate automatically. Append the level for each new
+                       quarter end once its MPC decision is verified.
+                       Last verified 10-Jun-2026: MPC of 05-Jun-2026 HELD at 5.25%,
+                       neutral stance (SDF 5.00 / MSF & Bank Rate 5.50).
+   2. FALLBACK.cpi   → quarterly avg of MOSPI monthly YoY prints (released ~12th).
+   3. FALLBACK.gdp   → NSO quarterly release (end Feb / May / Aug / Nov).
+                       Q1-2026 value is a PRELIMINARY estimate.
+   4. FALLBACK.usdinr→ optional; live Frankfurter fetch replaces it on every load.
+                       Values = quarter-end ECB reference (2021–2024 from training-
+                       verified history; 2025–Q1-2026 cross-checked 10-Jun-2026).
+   5. FALLBACK.brent → WB Pink Sheet quarterly averages. 2025 + Q1-2026 verified
+                       against Pink Sheet Apr-2026 edition (Q1-26 = 80.5: Jan 66.8,
+                       Feb 71.1, Mar 103.7 — Hormuz closure). 2021–2024 from
+                       training, cross-checked against verified annual averages.
+   6. BASE_QUARTERS / BASE_QUARTER_ENDS → the embedded baseline axis. The live axis
+                       (QUARTERS / QUARTER_ENDS) extends automatically to the latest
+                       quarter with complete official CPI or GDP data; series without a
+                       value there are left blank (null), never estimated.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+const DATA_VINTAGE = '10 Jun 2026';
+
+// ─── AXES / TIME BASE ─────────────────────────────────────────────────────────
+const BASE_QUARTERS = [
+  'Q1 2021','Q2 2021','Q3 2021','Q4 2021',
+  'Q1 2022','Q2 2022','Q3 2022','Q4 2022',
+  'Q1 2023','Q2 2023','Q3 2023','Q4 2023',
+  'Q1 2024','Q2 2024','Q3 2024','Q4 2024',
+  'Q1 2025','Q2 2025','Q3 2025','Q4 2025',
+  'Q1 2026'
+];
+
+// Calendar quarter-end dates, used to sample the live daily FX series.
+const BASE_QUARTER_ENDS = [
+  '2021-03-31','2021-06-30','2021-09-30','2021-12-31',
+  '2022-03-31','2022-06-30','2022-09-30','2022-12-31',
+  '2023-03-31','2023-06-30','2023-09-30','2023-12-31',
+  '2024-03-31','2024-06-30','2024-09-30','2024-12-31',
+  '2025-03-31','2025-06-30','2025-09-30','2025-12-31',
+  '2026-03-31'
+];
+
+// ─── EMBEDDED BASELINE DATA ───────────────────────────────────────────────────
+// repo  : end-of-quarter policy repo rate (%)
+// cpi   : quarterly avg of monthly CPI YoY (%)
+// gdp   : quarterly real GDP YoY (%), calendar quarters (NSO labels Apr–Jun as Q1 FY)
+// usdinr: quarter-end ECB reference rate (₹ per $)
+// brent : quarterly average ($/bbl), WB Pink Sheet basis
+const FALLBACK = {
+  repo:   [4.00,4.00,4.00,4.00, 4.00,4.40,5.90,6.25, 6.50,6.50,6.50,6.50, 6.50,6.50,6.50,6.50, 6.50,6.25,5.75,5.50, 5.25],
+  cpi:    [5.0,5.6,5.1,5.2, 6.3,7.3,7.0,6.0, 6.4,4.8,4.7,5.5, 5.1,4.8,4.2,5.0, 3.8,3.2,2.5,1.8, 1.6],
+  gdp:    [1.6,20.1,8.4,5.4, 4.1,13.5,6.3,4.4, 6.1,7.8,7.6,8.4, 7.8,6.7,5.4,6.2, 6.7,7.0,6.8,6.5, 6.3],
+  usdinr: [73.1,74.3,74.2,74.3, 75.8,79.0,81.4,82.7, 82.2,82.0,83.0,83.2, 83.4,83.4,83.8,85.6, 85.5,85.7,88.8,90.2, 93.3],
+  brent:  [61.0,68.8,73.2,79.7, 97.9,111.9,97.7,88.6, 81.2,78.0,86.6,84.4, 83.2,85.0,79.8,74.7, 75.6,67.8,69.0,63.7, 80.5]
+};
+
+// ─── STATUS / LIVE STATE ──────────────────────────────────────────────────────
+// 'live'     = chart series for this indicator was fetched from an API this session
+// 'checked'  = baseline series, but a live annual cross-check succeeded
+// 'baseline' = embedded data only
+// Live axis: starts as the baseline axis, extended by extendAxis() when official data runs further.
+let QUARTERS = [...BASE_QUARTERS];
+let QUARTER_ENDS = [...BASE_QUARTER_ENDS];
+
+// Card states: 'latest' | 'cached' | 'snapshot' | 'stale' | 'baseline' | 'manual' | 'unavailable'
+let sourceStatus = { repo:'baseline', cpi:'baseline', gdp:'baseline', usdinr:'baseline', brent:'baseline' };
+let crossCheck   = { cpi:null, gdp:null };               // {year, wb, baseAvg, basis} — display only
+let pointSrc     = { cpi:[], gdp:[], usdinr:[], brent:[] };   // per-quarter provenance for tooltips
+let liveMeta     = { inrSpot:null, inrSpotDate:null, inrQuartersLive:0,
+                     brentLatest:null, brentLatestLabel:null, brentQuartersLive:0 };
+
+// ─── CHART 1: REPO / CPI / GDP ────────────────────────────────────────────────
+let macroChart = null;
+
+function buildChart(data) {
+  const ctx = document.getElementById('macroChart').getContext('2d');
+  if (macroChart) macroChart.destroy();
+
+  macroChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: QUARTERS,
+      datasets: [
+        {
+          label: 'Repo Rate (%)',
+          data: data.repo,
+          borderColor: '#1e40af',
+          backgroundColor: 'rgba(30,64,175,0.08)',
+          borderWidth: 1.5,
+          pointBackgroundColor: '#1e40af',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 7,
+          tension: 0.3,
+          fill: false,
+          yAxisID: 'yLeft',
+          order: 2
+        },
+        {
+          label: 'CPI Inflation (%)',
+          data: data.cpi,
+          borderColor: '#dc2626',
+          backgroundColor: 'rgba(220,38,38,0.06)',
+          borderWidth: 1.5,
+          pointBackgroundColor: '#dc2626',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 7,
+          tension: 0.3,
+          fill: false,
+          yAxisID: 'yLeft',
+          order: 3
+        },
+        {
+          label: 'GDP Growth (%)',
+          data: data.gdp,
+          borderColor: '#16a34a',
+          backgroundColor: 'rgba(22,163,74,0.06)',
+          borderWidth: 1.5,
+          pointBackgroundColor: '#16a34a',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 7,
+          tension: 0.3,
+          fill: false,
+          yAxisID: 'yRight',
+          order: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true, position: 'top', align: 'end',
+          labels: {
+            usePointStyle: true, pointStyle: 'circle', padding: 20,
+            font: { family: "'JetBrains Mono', monospace", size: 11 },
+            color: '#4b5563'
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15,23,42,0.95)',
+          titleColor: '#f1f5f9',
+          bodyColor: '#cbd5e1',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          padding: 14,
+          titleFont: { family: "'Inter', sans-serif", size: 12, weight: '700' },
+          bodyFont: { family: "'JetBrains Mono', monospace", size: 11 },
+          callbacks: {
+            title: ctx => `📅  ${ctx[0].label}`,
+            label: ctx => {
+              if (ctx.parsed.y == null) return null;
+              const icons = ['🏦','📈','🟢'];
+              const icon = icons[ctx.datasetIndex] || '';
+              const key = ['repo','cpi','gdp'][ctx.datasetIndex];
+              const src = key === 'repo' ? 'manual MPC log' : (pointSrc[key][ctx.dataIndex] || '');
+              return `  ${icon}  ${ctx.dataset.label.padEnd(22)}: ${ctx.parsed.y.toFixed(2)}%  ${src ? '· ' + src : ''}`;
+            }
+          }
+        },
+        annotation: {
+          annotations: {
+            hikeLine: {
+              type: 'line', xMin: 5, xMax: 5,
+              borderColor: 'rgba(220,38,38,0.5)', borderWidth: 2, borderDash: [5, 4],
+              label: {
+                display: true, content: '▲ Hike Cycle', position: 'start',
+                backgroundColor: 'rgba(220,38,38,0.12)', color: '#dc2626',
+                font: { family: "'JetBrains Mono', monospace", size: 10, weight: '500' },
+                padding: { x: 6, y: 3 }, borderRadius: 4
+              }
+            },
+            cutLine: {
+              type: 'line', xMin: 16, xMax: 16,
+              borderColor: 'rgba(22,163,74,0.5)', borderWidth: 2, borderDash: [5, 4],
+              label: {
+                display: true, content: '▼ Cut Cycle', position: 'start',
+                backgroundColor: 'rgba(22,163,74,0.12)', color: '#16a34a',
+                font: { family: "'JetBrains Mono', monospace", size: 10, weight: '500' },
+                padding: { x: 6, y: 3 }, borderRadius: 4
+              }
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(0,0,0,0.03)', drawBorder: false },
+          ticks: {
+            font: { family: "'JetBrains Mono', monospace", size: 10 },
+            color: '#9ca3af', maxRotation: 45, minRotation: 30
+          },
+          border: { dash: [3,3] }
+        },
+        yLeft: {
+          type: 'linear', position: 'left', min: 0, max: 9,
+          grid: { color: 'rgba(0,0,0,0.03)' },
+          ticks: {
+            font: { family: "'JetBrains Mono', monospace", size: 10 },
+            color: '#9ca3af', callback: v => v.toFixed(1) + '%'
+          },
+          title: {
+            display: true, text: 'Repo Rate & CPI (%)',
+            font: { family: "'Inter', sans-serif", size: 11, weight: '600' }, color: '#6b7280'
+          }
+        },
+        yRight: {
+          type: 'linear', position: 'right', min: -5, max: 25,
+          grid: { drawOnChartArea: false },
+          ticks: {
+            font: { family: "'JetBrains Mono', monospace", size: 10 },
+            color: '#9ca3af', callback: v => v.toFixed(0) + '%'
+          },
+          title: {
+            display: true, text: 'GDP Growth (%)',
+            font: { family: "'Inter', sans-serif", size: 11, weight: '600' }, color: '#6b7280'
+          }
+        }
+      }
+    }
+  });
+}
+
+// ─── CHART 2+3: EXTERNAL SECTOR · MONTHLY (INR+Brent) + DAILY (INR+DXY) ────────
+let extData = { dailyINR:null, dailyDXY:null, monINR:null, monBrent:null,
+                liveINR:false, liveBrent:false };
+let externalMonthlyChart = null, externalDailyChart = null;
+
+// quarter label ('Q3 2022') → mid-quarter ISO date, for plotting verified
+// quarterly baseline on a true time axis WITHOUT interpolating monthly points.
+function qToDate(qLabel) {
+  const [q, yr] = qLabel.split(' ');
+  const qn = parseInt(q.slice(1), 10);
+  const mid = String(3 * (qn - 1) + 2).padStart(2, '0');   // 02/05/08/11
+  return `${yr}-${mid}-15`;
+}
+
+const EXT_TT = {
+  backgroundColor: 'rgba(15,23,42,0.95)', titleColor: '#f1f5f9', bodyColor: '#cbd5e1',
+  borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 12,
+  titleFont: { family: "'Inter', sans-serif", size: 12, weight: '700' },
+  bodyFont:  { family: "'JetBrains Mono', monospace", size: 11 }
+};
+
+function buildExternalMonthly() {
+  if (typeof Chart === 'undefined') return;
+  const ctx = document.getElementById('externalMonthlyChart').getContext('2d');
+  if (externalMonthlyChart) externalMonthlyChart.destroy();
+  const tag = document.getElementById('extMonTag');
+  const inrOn = !!(extData.liveINR && extData.monINR), brOn = !!(extData.liveBrent && extData.monBrent);
+  setStateTag(tag, [inrOn ? sourceStatus.usdinr : 'baseline', brOn ? sourceStatus.brent : 'baseline']);
+
+  // INR: live month-end series if available, else verified quarterly points (no interpolation)
+  const inr = (extData.liveINR && extData.monINR && extData.monINR.length)
+    ? extData.monINR
+    : BASE_QUARTERS.map((q, i) => ({ x: qToDate(q), y: FALLBACK.usdinr[i] }));
+  const brent = (extData.liveBrent && extData.monBrent && extData.monBrent.length)
+    ? extData.monBrent
+    : BASE_QUARTERS.map((q, i) => ({ x: qToDate(q), y: FALLBACK.brent[i] }));
+
+  const inrLive = extData.liveINR && extData.monINR && extData.monINR.length;
+  const brLive  = extData.liveBrent && extData.monBrent && extData.monBrent.length;
+  document.getElementById('extMonNote').textContent =
+    `INR: ${inrLive ? extData.monINR.length + ' month-end ECB reference rates · ' + PROV[sourceStatus.usdinr].word : BASE_QUARTERS.length + ' verified quarter-end points · baseline (no interpolation)'} · ` +
+    `Brent: ${brLive ? extData.monBrent.length + ' monthly averages · FRED/EIA · ' + PROV[sourceStatus.brent].word : BASE_QUARTERS.length + ' verified quarterly averages · baseline'}`;
+
+  externalMonthlyChart = new Chart(ctx, {
+    type: 'line',
+    data: { datasets: [
+      { label: 'USD/INR (month-end)', data: inr, borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.07)',
+        borderWidth: 1.5, pointBackgroundColor: '#7c3aed', pointBorderColor: '#fff', pointBorderWidth: 1.5,
+        pointRadius: inrLive ? 0 : 4, pointHoverRadius: 6, tension: 0.25, fill: false, yAxisID: 'yInr', order: 1 },
+      { label: 'Brent ($/bbl, monthly)', data: brent, borderColor: '#b45309', backgroundColor: 'rgba(180,83,9,0.07)',
+        borderWidth: 1.5, pointBackgroundColor: '#b45309', pointBorderColor: '#fff', pointBorderWidth: 1.5,
+        pointRadius: brLive ? 0 : 4, pointHoverRadius: 6, tension: 0.25, fill: false, yAxisID: 'yBrent', order: 2 }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'top', align: 'end', labels: { usePointStyle: true, pointStyle: 'circle', padding: 18, font: { family: "'JetBrains Mono', monospace", size: 11 }, color: '#4b5563' } },
+        tooltip: { ...EXT_TT, callbacks: {
+          title: c => `📅  ${new Date(c[0].parsed.x).toLocaleDateString('en-IN', { month:'short', year:'numeric' })}`,
+          label: c => c.parsed.y == null ? null : c.datasetIndex === 0 ? `  💱  USD/INR   : ₹${c.parsed.y.toFixed(2)}` : `  🛢  Brent     : $${c.parsed.y.toFixed(1)}/bbl` } },
+        annotation: { annotations: {
+          ukraine: { type: 'line', scaleID: 'x', value: '2022-02-24', borderColor: 'rgba(180,83,9,0.45)', borderWidth: 1.5, borderDash: [5,4],
+            label: { display: true, content: '▲ Ukraine Invasion', position: 'start', backgroundColor: 'rgba(180,83,9,0.12)', color: '#b45309', font: { family: "'JetBrains Mono', monospace", size: 9.5, weight: '500' }, padding: { x:6, y:3 }, borderRadius: 4 } },
+          hormuz: { type: 'line', scaleID: 'x', value: '2026-03-01', borderColor: 'rgba(220,38,38,0.45)', borderWidth: 1.5, borderDash: [5,4],
+            label: { display: true, content: '▲ Hormuz Closure', position: 'start', backgroundColor: 'rgba(220,38,38,0.10)', color: '#dc2626', font: { family: "'JetBrains Mono', monospace", size: 9.5, weight: '500' }, padding: { x:6, y:3 }, borderRadius: 4 } }
+        } }
+      },
+      scales: {
+        x: { type: 'time', min: '2021-01-01', time: { unit: 'quarter', tooltipFormat: 'MMM yyyy', displayFormats: { quarter: "QQQ ''yy", month: "MMM ''yy" } },
+             grid: { color: 'rgba(0,0,0,0.03)' }, ticks: { font: { family: "'JetBrains Mono', monospace", size: 9.5 }, color: '#9ca3af', maxRotation: 45, autoSkip: true, maxTicksLimit: 16 } },
+        yInr: { type: 'linear', position: 'left', grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { family: "'JetBrains Mono', monospace", size: 10 }, color: '#9ca3af', callback: v => '₹' + v.toFixed(0) }, title: { display: true, text: 'USD/INR', font: { family: "'Inter', sans-serif", size: 11, weight: '600' }, color: '#6b7280' } },
+        yBrent: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, ticks: { font: { family: "'JetBrains Mono', monospace", size: 10 }, color: '#9ca3af', callback: v => '$' + v.toFixed(0) }, title: { display: true, text: 'Brent $/bbl', font: { family: "'Inter', sans-serif", size: 11, weight: '600' }, color: '#6b7280' } }
+      }
+    }
+  });
+}
+
+function buildExternalDaily() {
+  if (typeof Chart === 'undefined') return;
+  const ctx = document.getElementById('externalDailyChart').getContext('2d');
+  if (externalDailyChart) externalDailyChart.destroy();
+  const tag = document.getElementById('extDailyTag');
+  const live = extData.liveINR && extData.dailyINR && extData.dailyINR.length;
+  setStateTag(tag, [live ? sourceStatus.usdinr : 'baseline']);
+
+  let inr = extData.dailyINR, dxy = extData.dailyDXY;
+  if (!live) {
+    // honest baseline: verified quarter-end INR points on the time axis (no daily fabrication);
+    // DXY has no historical baseline series, so only the latest known spot is shown.
+    inr = BASE_QUARTERS.map((q, i) => ({ x: qToDate(q), y: FALLBACK.usdinr[i] }));
+    dxy = [{ x: '2026-06-11', y: US_FALLBACK.dxy.latest.val }];
+    document.getElementById('extDailyNote').textContent =
+      'Baseline: no saved or fetched ECB reference rates. Showing verified quarter-end INR points + the last verified DXY level only — open via Open_Indian_Macro_Dashboard.cmd for daily lines.';
+  } else {
+    document.getElementById('extDailyNote').textContent =
+      `${PROV[sourceStatus.usdinr].word} · ${inr.length} ECB reference days (Jan 2021 → ${inr[inr.length-1].x}) · USD/INR + DXY estimate (ICE formula on ECB reference rates, not the traded index).`;
+  }
+
+  externalDailyChart = new Chart(ctx, {
+    type: 'line',
+    data: { datasets: [
+      { label: 'USD/INR (daily)', data: inr, borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.06)',
+        borderWidth: 1.3, pointRadius: live ? 0 : 4, pointHoverRadius: 5, tension: 0.1, yAxisID: 'yInr', order: 1 },
+      { label: 'DXY (daily)', data: dxy, borderColor: '#0e7490', backgroundColor: 'rgba(14,116,144,0.06)',
+        borderWidth: 1.3, pointRadius: live ? 0 : 4, pointHoverRadius: 5, tension: 0.1, yAxisID: 'yDxy', order: 2 }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'top', align: 'end', labels: { usePointStyle: true, pointStyle: 'circle', padding: 18, font: { family: "'JetBrains Mono', monospace", size: 11 }, color: '#4b5563' } },
+        tooltip: { ...EXT_TT, callbacks: {
+          title: c => `📅  ${new Date(c[0].parsed.x).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}`,
+          label: c => c.parsed.y == null ? null : c.datasetIndex === 0 ? `  💱  USD/INR : ₹${c.parsed.y.toFixed(2)}` : `  💵  DXY est.: ${c.parsed.y.toFixed(2)}` } }
+      },
+      scales: {
+        x: { type: 'time', min: '2021-01-01', time: { unit: 'month', tooltipFormat: 'dd MMM yyyy', displayFormats: { month: "MMM ''yy" } },
+             grid: { color: 'rgba(0,0,0,0.03)' }, ticks: { font: { family: "'JetBrains Mono', monospace", size: 9.5 }, color: '#9ca3af', maxRotation: 45, autoSkip: true, maxTicksLimit: 14 } },
+        yInr: { type: 'linear', position: 'left', grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { family: "'JetBrains Mono', monospace", size: 10 }, color: '#9ca3af', callback: v => '₹' + v.toFixed(0) }, title: { display: true, text: 'USD/INR', font: { family: "'Inter', sans-serif", size: 11, weight: '600' }, color: '#6b7280' } },
+        yDxy: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, ticks: { font: { family: "'JetBrains Mono', monospace", size: 10 }, color: '#9ca3af', callback: v => v.toFixed(0) }, title: { display: true, text: 'DXY', font: { family: "'Inter', sans-serif", size: 11, weight: '600' }, color: '#6b7280' } }
+      }
+    }
+  });
+}
+
+// orchestrator — preserves the name the rest of the file calls.
+function buildExternalChart() {
+  buildExternalMonthly();
+  buildExternalDaily();
+}
+
+// ─── SAVED DATA (data/macro_snapshot.js, written by refresh_data.py) ─────────
+// The local server refreshes it on every page open/reload and returns the new copy.
+// Every entry is re-validated here; a malformed entry is treated as absent.
+const RUN = { mode: 'unknown', ok: false, at: null, forced: false, results: {}, problems: [],
+              error: null, durationMs: null, fxDirect: null };
+const _snapCache = new WeakMap();
+function snapEntry(id) {
+  const root = window.MACRO_SNAPSHOT;
+  const e = root && root.sources && root.sources[id];
+  if (!e || typeof e !== 'object' || !Array.isArray(e.observations) || !e.observations.length) return null;
+  if (_snapCache.has(e)) return _snapCache.get(e);
+  const width = Array.isArray(e.fields) ? e.fields.length : 0;
+  let prev = null, ok = true;
+  for (const r of e.observations) {
+    if (!Array.isArray(r) || (width && r.length !== width) || !/^\d{4}-\d{2}-\d{2}$/.test(r[0]) ||
+        (prev !== null && r[0] <= prev) ||
+        r.slice(1).some(v => v !== null && (typeof v !== 'number' || !isFinite(v)))) { ok = false; break; }
+    prev = r[0];
+  }
+  const out = ok ? { id, meta: e, obs: e.observations, last: e.observations[e.observations.length - 1] } : null;
+  if (!ok) console.warn('saved entry failed validation, ignored:', id);
+  _snapCache.set(e, out);
+  return out;
+}
+const DAY_MS = 86400000;
+const isoToday = () => new Date().toISOString().slice(0, 10);
+const addDays = (iso, n) => new Date(Date.parse(iso + 'T00:00:00Z') + n * DAY_MS).toISOString().slice(0, 10);
+const fmtIST = iso => { const t = Date.parse(iso || ''); return isNaN(t) ? '–' : new Intl.DateTimeFormat('en-IN',
+  { timeZone:'Asia/Kolkata', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:false }).format(t) + ' IST'; };
+const fmtDay = iso => iso ? new Date(iso + 'T00:00:00Z').toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric', timeZone:'UTC' }) : '–';
+const fmtMonth = iso => iso ? new Date(iso + 'T00:00:00Z').toLocaleDateString('en-IN', { month:'short', year:'numeric', timeZone:'UTC' }) : '–';
+const qLabelOf = iso => `Q${Math.floor((+iso.slice(5, 7) - 1) / 3) + 1} ${iso.slice(0, 4)}`;
+
+// State of a saved source, using its own publication schedule (not a universal threshold).
+function entryState(id) {
+  const st = snapEntry(id);
+  if (!st) {
+    const raw = window.MACRO_SNAPSHOT && window.MACRO_SNAPSHOT.sources && window.MACRO_SNAPSHOT.sources[id];
+    return { state: 'unavailable', st: null, why: raw && raw.last_error ? raw.last_error.detail : 'no saved data' };
+  }
+  const m = st.meta, res = RUN.results[id];
+  let state = (RUN.mode === 'server' && RUN.ok && res)
+    ? (res.action === 'pending' ? 'snapshot' : res.action === 'failed' || m.status !== 'ok' ? 'cached' : 'latest')
+    : 'snapshot';
+  let overdueAfter = null;
+  if (m.max_obs_age_days != null) overdueAfter = addDays(st.last[0], m.max_obs_age_days);
+  else if (m.max_check_age_days != null && m.last_success_at) overdueAfter = addDays(m.last_success_at.slice(0, 10), m.max_check_age_days);
+  const overdue = overdueAfter !== null && isoToday() > overdueAfter;
+  if (overdue) state = 'stale';
+  return { state, st, res, overdue, overdueAfter };
+}
+// One-line provenance text for a card.
+function provText(id) {
+  const x = entryState(id);
+  if (!x.st) return `unavailable (${x.why})`;
+  const m = x.st.meta, parts = [];
+  if (x.res && x.res.action === 'pending') {
+    parts.push(`check still running (slow provider) · saved ${fmtIST(m.last_success_at)}`);
+  } else if (x.state === 'latest') {
+    parts.push(x.res && x.res.action === 'reused' ? `checked ${fmtIST(m.last_attempt_at)} (reused)` : `checked ${fmtIST(m.last_success_at)}`);
+  } else if (x.state === 'cached') {
+    parts.push(`refresh failed (${(m.last_error && m.last_error.detail) || 'error'}) · saved ${fmtIST(m.last_success_at)}`);
+  } else {
+    parts.push(`saved ${fmtIST(m.last_success_at)} · not re-checked`);
+  }
+  if (x.overdue) parts.push(`⚠ newer release overdue since ${fmtDay(x.overdueAfter)}`);
+  return parts.join(' · ');
+}
+
+// Provenance vocabulary shared by cards, tags, badges and the status table.
+const PROV = {
+  latest:      { dot:'srcdot-live',     label:'LATEST',      src:'live-src',     tag:'live',     word:'latest published' },
+  cached:      { dot:'srcdot-snapshot', label:'CACHED',      src:'snapshot-src', tag:'snapshot', word:'cached (refresh failed)' },
+  snapshot:    { dot:'srcdot-snapshot', label:'SNAPSHOT',    src:'snapshot-src', tag:'snapshot', word:'saved snapshot' },
+  stale:       { dot:'srcdot-stale',    label:'STALE',       src:'stale-src',    tag:'stale',    word:'stale' },
+  baseline:    { dot:'srcdot-baseline', label:'BASELINE',    src:'cached-src',   tag:'',         word:'baseline' },
+  manual:      { dot:'srcdot-manual',   label:'MANUAL',      src:'manual-src',   tag:'',         word:'manual' },
+  unavailable: { dot:'srcdot-unavail',  label:'UNAVAILABLE', src:'unavail-src',  tag:'',         word:'unavailable' }
+};
+function setStateTag(el, states) {
+  const uniq = [...new Set(states)];
+  const one = uniq.length === 1 ? uniq[0] : null;
+  el.textContent = one ? PROV[one].label : uniq.map(x => PROV[x].label).join(' + ');
+  el.classList.remove('live', 'snapshot', 'stale');
+  const worst = ['stale','baseline','unavailable','manual','cached','snapshot','latest'].find(x => uniq.includes(x));
+  if (worst && PROV[worst].tag) el.classList.add(PROV[worst].tag);
+}
+
+// ─── INDIA SERIES ASSEMBLY ────────────────────────────────────────────────────
+function monthlyCpiYoY() {           // 'YYYY-MM-01' -> {v, src}; base 2024 preferred where published
+  const out = {};
+  const c12 = snapEntry('MOSPI:CPI_2012'), c24 = snapEntry('MOSPI:CPI_2024');
+  if (c12) for (const [d, y] of c12.obs) if (y !== null) out[d] = { v: y, src: 'MoSPI CPI base 2012' };
+  if (c24) for (const [d, y] of c24.obs) if (y !== null) out[d] = { v: y, src: 'MoSPI CPI base 2024' };
+  return out;
+}
+function quarterlyGdpYoY() {         // calendar quarter start -> {v, src}; 2022-23 base preferred
+  const out = {};
+  for (const [id, label] of [['MOSPI:GDP_2011_12', 'MoSPI GDP base 2011-12'], ['MOSPI:GDP_2022_23', 'MoSPI GDP base 2022-23']]) {
+    const st = snapEntry(id); if (!st) continue;
+    const lvl = Object.fromEntries(st.obs.map(r => [r[0], r[1]]));
+    for (const d of Object.keys(lvl)) {
+      const p = `${+d.slice(0, 4) - 1}${d.slice(4)}`;
+      if (lvl[p]) out[d] = { v: (lvl[d] / lvl[p] - 1) * 100, src: label };
+    }
+  }
+  return out;
+}
+const quarterStart = q => { const [qq, y] = q.split(' '); return `${y}-${String(3 * (+qq.slice(1) - 1) + 1).padStart(2, '0')}-01`; };
+function cpiQuarter(cpiM, q) {       // mean of 3 monthly YoY prints; complete quarters only
+  const d0 = quarterStart(q), y = d0.slice(0, 4), m0 = +d0.slice(5, 7);
+  const pts = [0, 1, 2].map(k => cpiM[`${y}-${String(m0 + k).padStart(2, '0')}-01`]);
+  if (pts.some(p => !p)) return null;
+  const srcs = [...new Set(pts.map(p => p.src))];
+  return { v: pts.reduce((a, p) => a + p.v, 0) / 3, src: srcs.join(' / ') };
+}
+function extendAxis(lastStartIso) {   // extend the axis to the quarter starting at lastStartIso (never shrink)
+  QUARTERS = [...BASE_QUARTERS]; QUARTER_ENDS = [...BASE_QUARTER_ENDS];
+  if (!lastStartIso) return;
+  let [y, m] = quarterStart(QUARTERS[QUARTERS.length - 1]).split('-').map(Number);
+  while (true) {
+    m += 3; if (m > 12) { m -= 12; y++; }
+    const start = `${y}-${String(m).padStart(2, '0')}-01`;
+    if (start > lastStartIso) break;
+    QUARTERS.push(qLabelOf(start));
+    const endM = m + 2, endD = new Date(Date.UTC(y, endM, 0)).getUTCDate();
+    QUARTER_ENDS.push(`${y}-${String(endM).padStart(2, '0')}-${endD}`);
+  }
+}
+const padTo = (arr, n) => arr.concat(Array(Math.max(0, n - arr.length)).fill(null)).slice(0, n);
+
+// Builds the chart arrays from official data where available, baseline elsewhere.
+function assembleIndiaData() {
+  const cpiM = monthlyCpiYoY(), gdpQ = quarterlyGdpYoY();
+  // last complete official quarter for CPI, last official quarter for GDP
+  let lastStart = null;
+  const cpiMonths = Object.keys(cpiM).sort();
+  if (cpiMonths.length) {
+    const lm = cpiMonths[cpiMonths.length - 1], mm = +lm.slice(5, 7);
+    const q = qLabelOf(mm % 3 === 0 ? lm : `${+lm.slice(0, 4) - (mm < 3 ? 1 : 0)}-${String(mm < 3 ? 12 : mm - mm % 3).padStart(2, '0')}-01`);
+    lastStart = quarterStart(q);
+  }
+  const gq = Object.keys(gdpQ).sort();
+  if (gq.length && (!lastStart || gq[gq.length - 1] > lastStart)) lastStart = gq[gq.length - 1];
+  extendAxis(lastStart);
+  const n = QUARTERS.length;
+  const data = { repo: padTo(FALLBACK.repo, n), cpi: [], gdp: [], usdinr: padTo(FALLBACK.usdinr, n), brent: padTo(FALLBACK.brent, n) };
+  pointSrc = { cpi: [], gdp: [], usdinr: Array(n).fill('baseline'), brent: Array(n).fill('baseline') };
+  const counts = { cpi: 0, gdp: 0 };
+  QUARTERS.forEach((q, i) => {
+    const c = cpiQuarter(cpiM, q);
+    data.cpi[i] = c ? c.v : (FALLBACK.cpi[i] ?? null);
+    pointSrc.cpi[i] = c ? c.src : (FALLBACK.cpi[i] != null ? 'baseline' : 'not published');
+    if (c) counts.cpi++;
+    const g = gdpQ[quarterStart(q)];
+    data.gdp[i] = g ? g.v : (FALLBACK.gdp[i] ?? null);
+    pointSrc.gdp[i] = g ? g.src : (FALLBACK.gdp[i] != null ? 'baseline' : 'not published');
+    if (g) counts.gdp++;
+  });
+  liveMeta.cpiQuartersOfficial = counts.cpi;
+  liveMeta.gdpQuartersOfficial = counts.gdp;
+  liveMeta.cpiMonthly = cpiMonths.map(d => ({ date: d, ...cpiM[d] }));
+  liveMeta.gdpQuarterly = gq.map(d => ({ date: d, ...gdpQ[d] }));
+  return data;
+}
+
+// ─── USD/INR + DXY: ECB reference rates ───────────────────────────────────────
+// Server/snapshot rows: [date, INR, EUR, JPY, GBP, CAD, SEK, CHF] per USD.
+const FX_COLS = ['INR','EUR','JPY','GBP','CAD','SEK','CHF'];
+const dxyOfRow = r => 50.14348112 * Math.pow(r.EUR, 0.576) * Math.pow(r.JPY, 0.136) * Math.pow(r.GBP, 0.119)
+                    * Math.pow(r.CAD, 0.091) * Math.pow(r.SEK, 0.042) * Math.pow(r.CHF, 0.036);
+function fxRowsFromSnapshot() {
+  const st = snapEntry('ECB:FX');
+  return st ? st.obs.map(r => ({ date: r[0], ...Object.fromEntries(FX_COLS.map((c, k) => [c, r[k + 1]])) })) : null;
+}
+// file:// only: Frankfurter is CORS-enabled, so the browser can check it directly.
+async function fetchFxDirect() {
+  const url = 'https://api.frankfurter.dev/v1/2021-01-01..?base=USD&symbols=' + FX_COLS.join(',');
+  const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
+  if (!res.ok) throw new Error('Frankfurter HTTP ' + res.status);
+  const json = await res.json();
+  if (!json || json.base !== 'USD' || !json.rates) throw new Error('unexpected Frankfurter payload');
+  const rows = Object.keys(json.rates).sort().map(d => ({ date: d, ...json.rates[d] }));
+  if (rows.length < 50 || rows.some(r => FX_COLS.some(c => !(r[c] > 0)))) throw new Error('Frankfurter series failed validation');
+  return rows;
+}
+function applyFx(data) {
+  let rows = null, state = 'baseline';
+  if (RUN.fxDirect) { rows = RUN.fxDirect; state = 'latest'; }
+  else { const x = entryState('ECB:FX'); if (x.st) { rows = fxRowsFromSnapshot(); state = x.state; } }
+  liveMeta.fxRows = rows;
+  if (!rows || !rows.length) {
+    sourceStatus.usdinr = 'baseline'; liveMeta.inrSpot = null; extData.liveINR = false; return;
+  }
+  QUARTER_ENDS.forEach((qEnd, i) => {
+    let pick = null;
+    for (let k = rows.length - 1; k >= 0; k--) if (rows[k].date <= qEnd) { pick = rows[k]; break; }
+    if (pick && qEnd <= rows[rows.length - 1].date) { data.usdinr[i] = pick.INR; pointSrc.usdinr[i] = 'ECB reference ' + pick.date; }
+  });
+  const monMap = {};
+  for (const r of rows) monMap[r.date.slice(0, 7)] = r;
+  extData.monINR = Object.keys(monMap).sort().map(mk => ({ x: mk + '-01', y: monMap[mk].INR }));
+  extData.dailyINR = rows.map(r => ({ x: r.date, y: r.INR }));
+  extData.dailyDXY = rows.map(r => ({ x: r.date, y: dxyOfRow(r) }));
+  extData.liveINR = true;
+  const last = rows[rows.length - 1];
+  liveMeta.inrSpot = last.INR; liveMeta.inrSpotDate = last.date;
+  sourceStatus.usdinr = state;
+}
+
+// ─── Brent: FRED MCOILBRENTEU (EIA spot, monthly average) ─────────────────────
+function applyBrent(data) {
+  const x = entryState('FRED:MCOILBRENTEU');
+  if (!x.st) { sourceStatus.brent = 'baseline'; liveMeta.brentLatest = null; extData.liveBrent = false; return; }
+  const mm = Object.fromEntries(x.st.obs.map(r => [r[0].slice(0, 7), r[1]]));
+  let n = 0;
+  QUARTERS.forEach((q, i) => {
+    const d0 = quarterStart(q), y = d0.slice(0, 4), m0 = +d0.slice(5, 7);
+    const v = [0, 1, 2].map(k => mm[`${y}-${String(m0 + k).padStart(2, '0')}`]);
+    if (v.every(z => typeof z === 'number')) { data.brent[i] = (v[0] + v[1] + v[2]) / 3; pointSrc.brent[i] = 'FRED/EIA 3-month mean'; n++; }
+  });
+  extData.monBrent = x.st.obs.map(r => ({ x: r[0], y: r[1] }));
+  extData.liveBrent = true;
+  liveMeta.brentLatest = x.st.last[1];
+  liveMeta.brentLatestLabel = fmtMonth(x.st.last[0]);
+  liveMeta.brentQuartersLive = n;
+  sourceStatus.brent = x.state;
+}
+
+// ─── World Bank annual: cross-check only (never changes chart data or card state) ─
+function avgCY(arr, year) {
+  const idx = [1, 2, 3, 4].map(q => QUARTERS.indexOf(`Q${q} ${year}`));
+  if (idx.some(i => i < 0 || arr[i] == null)) return null;
+  return idx.reduce((s, i) => s + arr[i], 0) / 4;
+}
+function avgFY(arr, startYear) {      // India FY = Q2..Q4 of startYear + Q1 of next
+  const idx = [`Q2 ${startYear}`, `Q3 ${startYear}`, `Q4 ${startYear}`, `Q1 ${startYear + 1}`].map(q => QUARTERS.indexOf(q));
+  if (idx.some(i => i < 0 || arr[i] == null)) return null;
+  return idx.reduce((s, i) => s + arr[i], 0) / 4;
+}
+function applyCrossChecks(data) {
+  crossCheck = { cpi: null, gdp: null };
+  for (const [key, id, fn, basis] of [['cpi', 'WB:CPI_ANNUAL', avgCY, 'CY'], ['gdp', 'WB:GDP_ANNUAL', avgFY, 'FY']]) {
+    const st = snapEntry(id); if (!st) continue;
+    for (const [d, v] of [...st.obs].reverse()) {
+      const yr = +d.slice(0, 4), base = fn(data[key], yr);
+      if (base !== null) { crossCheck[key] = { year: yr, wb: v, baseAvg: base, basis, state: entryState(id).state }; break; }
+    }
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   US MACRO IMPACT SECTION
+   ─────────────────────────────────────────────────────────────────────────────
+   MAINTENANCE (manual touchpoints):
+   A. US_FALLBACK   → refresh after each CPI (~10th), PCE (~end-month), NFP
+                      (first Friday). Only enter VERIFIED prints — no estimates.
+   A2. US_MONTHLY   → append one verified point per print alongside US_FALLBACK
+                      (feeds trend mini-charts in baseline mode; live series override).
+   B. US_RELEASES   → rolling ~35-day log of releases (actual/forecast/previous).
+                      Forecasts = Dow Jones / TE consensus as reported on the day.
+                      MANUAL ONLY: there is no automated consensus feed (ForexFactory
+                      refuses automated clients). This block is the backbone of the
+                      timeline, Surprise Tracker and the score's surprise inputs; a
+                      surprise is used in scores only if it covers the latest published
+                      FRED actual for that indicator (see usInputCurrency).
+   (Actual US values — CPI, PCE, NFP, real yield, DXY estimate — are automated.)
+   C. US_MOVES      → optional verified market-move events for baseline mode.
+   Last verified 10-Jun-2026 (evening IST, post-CPI):
+     · May CPI 4.2% YoY (= consensus 4.2; core 2.9% = est, core MoM 0.2 vs 0.3)
+     · May NFP +172K vs 85K est (Apr revised 115K→179K); U-3 4.3% in line
+     · Apr Core PCE 3.3% YoY (= est; MoM 0.2 vs 0.3 est); next print ~26-Jun
+     · DFII10 2.21% (08-Jun, FRED) · DXY 100.01 (10-Jun, +2.1% 1M, TE)
+     · Regime: Fed 3.50–3.75% on hold; Dec-2026 25bp HIKE fully priced;
+       Warsh's first FOMC 16–17 Jun; US–Iran conflict since 28-Feb-2026.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+const US_VINTAGE = '10 Jun 2026';
+
+const US_FALLBACK = {
+  cpi: { latest:{label:'May 2026', val:4.2}, prev:{label:'Apr 2026', val:3.8}, released:'10-Jun-2026 (BLS)' },
+  pce: { latest:{label:'Apr 2026', val:3.3}, prev:{label:'Mar 2026', val:3.2}, released:'28-May-2026 (BEA)' },
+  nfp: { latest:{label:'May 2026', val:172}, prev:{label:'Apr 2026 (rev)', val:179}, released:'05-Jun-2026 (BLS)' },
+  ry:  { latest:{label:'08-Jun-2026', val:2.21}, prev:{label:'07-Apr-2026', val:1.96}, windowDays:62 },
+  dxy: { latest:{label:'10-Jun-2026', val:100.01}, monthPct:2.1, weekPct:1.2 }   // TE / Vantage, verified
+};
+
+// Verified baseline history for trend mini-charts. ONLY verified prints — series
+// are deliberately short (no back-filled estimates). Live FRED/ECB series replace
+// these entirely when fetched. Append one entry per print when updating US_FALLBACK.
+// dxy basis = ECB-reference ICE formula (same as live computation, ±0.3 vs ICE futures).
+const US_MONTHLY = {
+  cpi: [ { label:'Mar 2026', val:3.3 }, { label:'Apr 2026', val:3.8 }, { label:'May 2026', val:4.2 } ],
+  pce: [ { label:'Mar 2026', val:3.2 }, { label:'Apr 2026', val:3.3 } ],
+  nfp: [ { label:'Apr 2026 (rev)', val:179 }, { label:'May 2026', val:172 } ],
+  ry:  [ { label:'07 Apr 26', val:1.96 }, { label:'08 Jun 26', val:2.21 } ],
+  dxy: [ { label:'14 May 26', val:98.57 }, { label:'15 May 26', val:99.21 },
+         { label:'08 Jun 26', val:99.91 }, { label:'11 Jun 26', val:100.06 } ]
+};
+
+// Verified release log (newest first). unit '%' = pp, 'K' = thousands of jobs.
+const US_RELEASES = [
+  { date:'2026-06-10', ind:'CPI YoY · May',      actual:4.2, forecast:4.2, previous:3.8, unit:'%',
+    note:'Core 2.9% in line · core MoM 0.2% vs 0.3% est · energy +23.5% YoY' },
+  { date:'2026-06-10', ind:'Core CPI YoY · May', actual:2.9, forecast:2.9, previous:2.8, unit:'%' },
+  { date:'2026-06-05', ind:'NFP · May',          actual:172, forecast:85,  previous:179, unit:'K',
+    note:'Apr revised 115K→179K · U-3 4.3% in line · AHE 3.4% YoY in line' },
+  { date:'2026-05-28', ind:'Core PCE YoY · Apr', actual:3.3, forecast:3.3, previous:3.2, unit:'%',
+    note:'MoM 0.2% vs 0.3% est · headline PCE 3.8% · Q1 GDP revised 2.0%→1.6%' },
+  { date:'2026-05-12', ind:'CPI YoY · Apr',      actual:3.8, forecast:3.7, previous:3.3, unit:'%' },
+  { date:'2026-05-12', ind:'Core CPI YoY · Apr', actual:2.8, forecast:2.7, previous:2.6, unit:'%' },
+];
+
+// Upcoming releases with published consensus but no actual yet (hollow bullet bars).
+// Rows whose date has passed without a logged actual are hidden (not shown as upcoming).
+// usState.ff is always null (no automated feed); its code paths are inert. 'previous' enables
+// the auto-fill: once US_RELEASES gains a matching dated actual, that bar fills instead.
+// MAINTENANCE: roll these forward each cycle (BLS/BEA calendar). type tags the panel.
+const US_UPCOMING = [
+  { date:'2026-06-26', ind:'Core PCE YoY · May', forecast:3.4, previous:3.3, unit:'%', type:'infl' },
+  { date:'2026-07-03', ind:'NFP · Jun',          forecast:110, previous:172, unit:'K', type:'nfp'  },
+  { date:'2026-07-15', ind:'CPI YoY · Jun',      forecast:4.3, previous:4.2, unit:'%', type:'infl' },
+];
+
+// Verified baseline market-move events (used when live daily series unavailable).
+const US_MOVES = [
+  { date:'2026-06-08', ind:'DXY', prev:98.9, val:100.07, unit:'idx',
+    note:'nine-week high after NFP beat · +1.2% on the week' },
+  { date:'2026-06-08', ind:'Real Yield 10Y', prev:1.96, val:2.21, unit:'%',
+    note:'+25bps since 07-Apr · hike repricing + energy shock' },
+];
+
+// Scoring weights — transparent & editable. Contributions are added to 50, clamped 0–100.
+const US_SCORE_WEIGHTS = {
+  gold:   { ryTrendPerBps:-0.8, ryTrendCap:20, ryLevelPivot:1.5, ryLevelPer:-8, ryLevelCap:10,
+            dxyPerPct:-4, dxyCap:15, cpiSurPerTenth:-8, cpiSurCap:10, nfpSurPer100K:-10, nfpSurCap:10 },
+  silver: { ryTrendPerBps:-0.65, ryTrendCap:16, ryLevelPivot:1.5, ryLevelPer:-6, ryLevelCap:8,
+            dxyPerPct:-4, dxyCap:15, cpiSurPerTenth:-7, cpiSurCap:9, nfpSurPer100K:-4, nfpSurCap:6 },
+  // Indian equities: DXY dominates (FII flows); NFP uses a goldilocks rule (see usGoldilocks)
+  eq:     { ryTrendPerBps:-0.5, ryTrendCap:14, ryLevelPivot:1.5, ryLevelPer:-4, ryLevelCap:6,
+            dxyPerPct:-6, dxyCap:18, cpiSurPerTenth:-5, cpiSurCap:8, nfpSurPer100K:null, nfpSurCap:8 }
+};
+
+let usState = {
+  status: { cpi:'baseline', pce:'baseline', nfp:'baseline', ry:'baseline', dxy:'baseline' },
+  series: { cpi:null, pce:null, nfp:null, ry:null, dxy:null },   // fetched/saved series when available
+  ids:    { cpi:'FRED:CPIAUCNS', pce:'FRED:PCEPILFE', nfp:'FRED:PAYEMS', ry:'FRED:DFII10', dxy:'ECB:FX' },
+  rawLast: {},
+  ff: null,                     // ForexFactory feed: not automated (refuses automated clients)
+  windowDays: 7
+};
+
+// nearest observation at-or-before (target − days)
+function usObsBefore(series, days, fromDate) {
+  const cutoff = new Date((fromDate ? new Date(fromDate) : new Date()).getTime() - days*86400000);
+  let best = null;
+  for (const o of series) { if (new Date(o.date) <= cutoff) best = o; else break; }
+  return best;
+}
+// monthly index series → [{date, val: yoy%}], matched by calendar month. A month
+// missing from the source (e.g. Oct-2025 CPI, never published) gives no point —
+// never a 13-month change.
+function usYoY(series) {
+  const byMonth = new Map(series.map(o => [o.date.slice(0,7), o.val]));
+  const out = [];
+  for (const o of series) {
+    const base = byMonth.get(`${+o.date.slice(0,4) - 1}-${o.date.slice(5,7)}`);
+    if (base != null && base !== 0) out.push({ date: o.date, val: (o.val / base - 1) * 100 });
+  }
+  return out;
+}
+const usMonthIdx = iso => (+iso.slice(0,4)) * 12 + (+iso.slice(5,7)) - 1;
+const usFmtDate = iso => new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'2-digit' });
+const usMonthLabel = iso => new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', { month:'short', year:'numeric' });
+
+// All US series come from saved/refreshed data (no browser proxies). Each key independent.
+function usLoadFromSnapshot() {
+  usState.series = { cpi:null, pce:null, nfp:null, ry:null, dxy:null };
+  usState.status = { cpi:'baseline', pce:'baseline', nfp:'baseline', ry:'baseline', dxy:'baseline' };
+  usState.rawLast = {};
+  const obsOf = id => { const st = snapEntry(id); return st ? st.obs.map(r => ({ date: r[0], val: r[1] })) : null; };
+  for (const key of ['cpi', 'pce']) {
+    const raw = obsOf(usState.ids[key]); if (!raw) continue;
+    const yoy = usYoY(raw);
+    if (yoy.length >= 2) { usState.series[key] = yoy; usState.rawLast[key] = raw[raw.length-1].date; usState.status[key] = entryState(usState.ids[key]).state; }
+  }
+  const pay = obsOf('FRED:PAYEMS');
+  if (pay) {
+    const out = [];
+    for (let i = 1; i < pay.length; i++)     // consecutive months only; thousands of jobs
+      if (usMonthIdx(pay[i].date) - usMonthIdx(pay[i-1].date) === 1)
+        out.push({ date: pay[i].date, val: Math.round(pay[i].val - pay[i-1].val) });
+    if (out.length >= 2) { usState.series.nfp = out; usState.rawLast.nfp = pay[pay.length-1].date; usState.status.nfp = entryState('FRED:PAYEMS').state; }
+  }
+  const ry = obsOf('FRED:DFII10');
+  if (ry && ry.length >= 2) { usState.series.ry = ry; usState.status.ry = entryState('FRED:DFII10').state; }
+  const fx = liveMeta.fxRows;
+  if (fx && fx.length >= 2) {
+    const cutoff = addDays(fx[fx.length-1].date, -45);
+    usState.series.dxy = fx.filter(r => r.date >= cutoff).map(r => ({ date: r.date, val: dxyOfRow(r) }));
+    usState.status.dxy = sourceStatus.usdinr;
+  }
+}
+// provenance text for a card's "updated" line
+function usSrcText(key, id, obsLabel) {
+  let t = `${usState.ids[key]} · obs ${obsLabel} · ${provText(usState.ids[key])}`;
+  const rl = usState.rawLast[key], ser = usState.series[key];
+  if (rl && ser && rl.slice(0,7) !== ser[ser.length-1].date.slice(0,7))
+    t += ` · ${usMonthLabel(rl)} YoY n/a (year-earlier month missing at source)`;
+  return t;
+}
+
+// ─── derived snapshot (live where available, verified baseline otherwise) ────
+function usSnapshot() {
+  const s = {};
+  // monthly trio
+  for (const [key, fb] of [['cpi',US_FALLBACK.cpi], ['pce',US_FALLBACK.pce], ['nfp',US_FALLBACK.nfp]]) {
+    const ser = usState.series[key];
+    if (ser && ser.length >= 2) {
+      const last = ser[ser.length-1], prev = ser[ser.length-2];
+      s[key] = { val:last.val, valLabel:usMonthLabel(last.date), prev:prev.val,
+                 prevLabel:usMonthLabel(prev.date), mo:last.val - prev.val, live:true,
+                 updated: usSrcText(key, {cpi:'CPIAUCNS', pce:'PCEPILFE', nfp:'PAYEMS'}[key], usMonthLabel(last.date)) };
+    } else {
+      s[key] = { val:fb.latest.val, valLabel:fb.latest.label, prev:fb.prev.val,
+                 prevLabel:fb.prev.label, mo:fb.latest.val - fb.prev.val, live:false,
+                 updated: fb.released + ' · baseline ' + US_VINTAGE };
+    }
+  }
+  // real yield (daily)
+  const ry = usState.series.ry;
+  if (ry && ry.length >= 2) {
+    const last = ry[ry.length-1], prev = ry[ry.length-2];
+    const w = usObsBefore(ry, 7, last.date), m = usObsBefore(ry, 30, last.date);
+    s.ry = { val:last.val, valLabel:usFmtDate(last.date), prev:prev.val, prevLabel:usFmtDate(prev.date),
+             wk: w ? (last.val-w.val)*100 : null, mo: m ? (last.val-m.val)*100 : null,
+             trendBps: m ? (last.val-m.val)*100 : null, trendWindow:30, live:true,
+             updated: usSrcText('ry', 'DFII10', usFmtDate(last.date)) };
+  } else {
+    const fb = US_FALLBACK.ry, dBps = (fb.latest.val - fb.prev.val) * 100;
+    s.ry = { val:fb.latest.val, valLabel:fb.latest.label, prev:fb.prev.val, prevLabel:fb.prev.label,
+             wk:null, mo:null, trendBps:dBps, trendWindow:fb.windowDays, live:false,
+             updated:'FRED H.15 · baseline ' + US_VINTAGE };
+  }
+  // DXY (daily, computed)
+  const dx = usState.series.dxy;
+  if (dx && dx.length >= 2) {
+    const last = dx[dx.length-1], prev = dx[dx.length-2];
+    const w = usObsBefore(dx, 7, last.date), m = usObsBefore(dx, 30, last.date);
+    s.dxy = { val:last.val, valLabel:usFmtDate(last.date), prev:prev.val, prevLabel:usFmtDate(prev.date),
+              wkPct: w ? (last.val/w.val-1)*100 : null, moPct: m ? (last.val/m.val-1)*100 : null, live:true,
+              updated:'Estimate: ICE formula on ECB reference rates · ' + usFmtDate(last.date) + ' · ' +
+                      (RUN.fxDirect ? 'fetched by browser this load' : provText('ECB:FX')) };
+  } else {
+    const fb = US_FALLBACK.dxy;
+    s.dxy = { val:fb.latest.val, valLabel:fb.latest.label, prev:null, prevLabel:null,
+              wkPct:fb.weekPct, moPct:fb.monthPct, live:false,
+              updated:'ICE DXY · baseline ' + US_VINTAGE + ' (not current)' };
+  }
+  // latest surprises come only from the MANUAL release log (consensus is not automated).
+  // Missing stays null (never 0). A surprise counts as current only if its reference month
+  // is the latest published actual for that indicator.
+  const lastOf = re => US_RELEASES.filter(r => re.test(r.ind)).sort((a, b) => b.date.localeCompare(a.date))[0];
+  const cpiRel = lastOf(/^CPI YoY/), nfpRel = lastOf(/^NFP/);
+  s.cpiSurprise = cpiRel ? +(cpiRel.actual - cpiRel.forecast).toFixed(2) : null;
+  s.nfpSurprise = nfpRel ? (nfpRel.actual - nfpRel.forecast) : null;
+  s.cpiRel = cpiRel; s.nfpRel = nfpRel;
+  s.cur = usInputCurrency(s);
+  return s;
+}
+
+// ─── impact scores ────────────────────────────────────────────────────────────
+const usClamp = (v, c) => Math.max(-c, Math.min(c, v));
+function usGoldilocks(surpriseK, cap) {   // Indian equities NFP rule
+  if (surpriseK == null) return 0;
+  if (surpriseK > 50)  return -Math.min(cap, 5 + (surpriseK-50)/25);   // hawkish repricing dominates
+  if (surpriseK >= 0)  return  Math.min(cap, surpriseK/10);            // growth w/o panic
+  if (surpriseK >= -50) return -Math.min(cap, -surpriseK/12);
+  return -Math.min(cap, 8 + (-surpriseK-50)/25);                       // growth scare
+}
+// Reference month of a manual release row, e.g. 'CPI YoY · May' released 2026-06-10 → '2026-05'.
+function usRelRefMonth(r) {
+  const m = /·\s*([A-Za-z]{3})/.exec(r.ind || '');
+  if (!m) return null;
+  const mi = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(m[1]);
+  if (mi < 0) return null;
+  const ry = +r.date.slice(0, 4), rm = +r.date.slice(5, 7) - 1;
+  return `${mi <= rm ? ry : ry - 1}-${String(mi + 1).padStart(2, '0')}`;
+}
+const usGoodState = st => ['latest', 'cached', 'snapshot'].includes(st);
+function usInputCurrency(s) {
+  const out = {}, why = {};
+  out.ry = s.ry.live && usGoodState(usState.status.ry);
+  why.ry = out.ry ? '' : (s.ry.live ? `real-yield data ${PROV[usState.status.ry].word}` : `real yield is baseline (${US_VINTAGE})`);
+  out.dxy = s.dxy.live && usGoodState(usState.status.dxy);
+  why.dxy = out.dxy ? '' : (s.dxy.live ? `DXY data ${PROV[usState.status.dxy].word}` : `DXY is baseline (${US_VINTAGE})`);
+  for (const [k, rel, key] of [['cpi', s.cpiRel, 'cpi'], ['nfp', s.nfpRel, 'nfp']]) {
+    const latest = usState.rawLast[key] ? usState.rawLast[key].slice(0, 7) : null;
+    const ref = rel ? usRelRefMonth(rel) : null;
+    out[k] = !!(rel && latest && ref === latest);
+    why[k] = out[k] ? '' : !rel ? 'no manual release logged'
+      : !latest ? `cannot confirm it is the latest print (no ${key.toUpperCase()} data)`
+      : `manual log ends at ${fmtMonth(ref + '-01')}; latest published actual is ${fmtMonth(latest + '-01')}`;
+  }
+  return { ...out, why };
+}
+function usScore(asset, snap) {
+  const w = US_SCORE_WEIGHTS[asset], comps = [], cur = snap.cur;
+  let total = 50, used = 0;
+  const add = (k, v) => { comps.push({ k, v }); total += v; used++; };
+  const skip = (k, why) => comps.push({ k: `${k} — excluded: ${why}`, v: null, excluded: true });
+  // RY trend normalised to a 30-day window (verified delta, arithmetic normalisation — labelled)
+  if (!cur.ry) { skip('RY trend', cur.why.ry); skip('RY level', cur.why.ry); }
+  else {
+    if (snap.ry.trendBps != null) {
+      const norm = snap.ry.trendBps * 30 / (snap.ry.trendWindow || 30);
+      add(`RY trend ${snap.ry.trendBps>=0?'+':''}${snap.ry.trendBps.toFixed(0)}bps/${snap.ry.trendWindow}d`, usClamp(norm * w.ryTrendPerBps, w.ryTrendCap));
+    } else skip('RY trend', 'not enough history');
+    add(`RY level ${snap.ry.val.toFixed(2)}%`, usClamp((snap.ry.val - w.ryLevelPivot) * w.ryLevelPer, w.ryLevelCap));
+  }
+  if (!cur.dxy) skip('DXY trend', cur.why.dxy);
+  else if (snap.dxy.moPct != null) add(`DXY ${snap.dxy.moPct>=0?'+':''}${snap.dxy.moPct.toFixed(1)}%/30d`, usClamp(snap.dxy.moPct * w.dxyPerPct, w.dxyCap));
+  else skip('DXY trend', 'not enough history');
+  if (!cur.cpi || snap.cpiSurprise == null) skip('CPI surprise', cur.why.cpi || 'missing');
+  else add(`CPI surprise ${snap.cpiSurprise>=0?'+':''}${snap.cpiSurprise.toFixed(1)}pp`, usClamp((snap.cpiSurprise/0.1) * w.cpiSurPerTenth, w.cpiSurCap));
+  if (!cur.nfp || snap.nfpSurprise == null) skip('NFP surprise', cur.why.nfp || 'missing');
+  else add(`NFP surprise ${snap.nfpSurprise>=0?'+':''}${snap.nfpSurprise}K`, (w.nfpSurPer100K === null)
+           ? usGoldilocks(snap.nfpSurprise, w.nfpSurCap) : usClamp((snap.nfpSurprise/100) * w.nfpSurPer100K, w.nfpSurCap));
+  const score = Math.max(0, Math.min(100, total));
+  return { score: used >= US_MIN_SCORE_INPUTS ? score : null, comps, used, of: 5 };
+}
+const US_MIN_SCORE_INPUTS = 3;   // fewer current inputs than this → score withheld
+function usVerdict(sc) {
+  return sc < 20 ? ['Strongly Bearish','v-sbear'] : sc < 40 ? ['Bearish','v-bear'] :
+         sc <= 60 ? ['Neutral','v-neut'] : sc <= 80 ? ['Bullish','v-bull'] : ['Strongly Bullish','v-sbull'];
+}
+function usRenderScore(elId, name, res) {
+  const chips = res.comps.map(c => c.excluded
+    ? `<span class="us-comp-chip excl">${c.k}</span>`
+    : `<span class="us-comp-chip ${c.v < -0.05 ? 'neg' : c.v > 0.05 ? 'pos' : ''}">${c.k} · ${c.v>=0?'+':''}${c.v.toFixed(1)}</span>`).join('');
+  if (res.score === null) {
+    document.getElementById(elId).innerHTML =
+      `<div class="us-score-head"><span class="us-score-asset">${name}</span><span class="us-score-num v-neut">—</span></div>
+       <div class="us-score-withheld">Score withheld · only ${res.used}/${res.of} inputs are current (needs ${US_MIN_SCORE_INPUTS}).</div>
+       <div class="us-score-comps">${chips}</div>`;
+    return;
+  }
+  const [label, cls] = usVerdict(res.score);
+  const cov = res.used < res.of ? ` · partial: ${res.used}/${res.of} inputs` : ` · ${res.of}/${res.of} inputs`;
+  document.getElementById(elId).innerHTML =
+    `<div class="us-score-head"><span class="us-score-asset">${name}</span>
+       <span class="us-score-num ${cls}">${Math.round(res.score)}</span></div>
+     <div class="us-score-track"><div class="us-score-marker" style="left:${res.score}%"></div></div>
+     <div class="us-score-verdict ${cls}">▮ ${label} · next 1–3M tilt${cov}</div>
+     <div class="us-score-comps">${chips}</div>`;
+}
+
+// ─── cards ────────────────────────────────────────────────────────────────────
+function usTrendArrow(delta, flatBand) {
+  if (delta == null || Math.abs(delta) <= flatBand) return ['→','t-flat'];
+  return delta > 0 ? ['↑','t-hawk'] : ['↓','t-dove'];
+}
+function usSetCard(prefix, opts) {
+  const { val, trendDelta, flatBand, prev, mo, wk, updated, live, fmt, deltaFmt } = opts;
+  document.getElementById(prefix+'Val').textContent = fmt(val);
+  const [arrow, cls] = usTrendArrow(trendDelta, flatBand);
+  const tr = document.getElementById(prefix+'Trend'); tr.textContent = arrow; tr.className = 'us-trend ' + cls;
+  document.getElementById(prefix+'Prev').textContent = prev;
+  if (mo !== undefined) {
+    const el = document.getElementById(prefix+'Mo');
+    el.textContent = mo == null ? 'n/a · live series required' : deltaFmt(mo);
+    el.className = 'v' + (mo > 0 ? ' up' : mo < 0 ? ' down' : '');
+  }
+  if (wk !== undefined) {
+    const el = document.getElementById(prefix+'Wk');
+    el.textContent = wk == null ? 'n/a · live series required' : deltaFmt(wk);
+    el.className = 'v' + (wk > 0 ? ' up' : wk < 0 ? ' down' : '');
+  }
+  document.getElementById(prefix+'Upd').textContent = '⟳ ' + updated;
+  setDot(prefix+'Dot', live ? usState.status[prefix.slice(2).toLowerCase()] : 'baseline');
+}
+function usRenderCards(snap) {
+  const pp = d => `${d>0?'+':d<0?'−':'±'}${Math.abs(d).toFixed(2)} pp`;
+  usSetCard('usCpi', { val:snap.cpi.val, trendDelta:snap.cpi.mo, flatBand:0.04,
+    prev:`${snap.cpi.prev.toFixed(1)}% · ${snap.cpi.prevLabel}`, mo:snap.cpi.mo,
+    updated:snap.cpi.updated, live:snap.cpi.live, fmt:v=>v.toFixed(1)+'%', deltaFmt:pp });
+  usSetCard('usPce', { val:snap.pce.val, trendDelta:snap.pce.mo, flatBand:0.04,
+    prev:`${snap.pce.prev.toFixed(1)}% · ${snap.pce.prevLabel}`, mo:snap.pce.mo,
+    updated:snap.pce.updated, live:snap.pce.live, fmt:v=>v.toFixed(1)+'%', deltaFmt:pp });
+  usSetCard('usNfp', { val:snap.nfp.val, trendDelta:snap.nfp.mo, flatBand:10,
+    prev:`+${snap.nfp.prev}K · ${snap.nfp.prevLabel}`, mo:snap.nfp.mo,
+    updated:snap.nfp.updated, live:snap.nfp.live, fmt:v=>'+'+Math.round(v)+'K',
+    deltaFmt:d=>`${d>0?'+':d<0?'−':'±'}${Math.abs(Math.round(d))}K vs prior month` });
+  usSetCard('usRy', { val:snap.ry.val, trendDelta:snap.ry.trendBps, flatBand:2,
+    prev:`${snap.ry.prev.toFixed(2)}% · ${snap.ry.prevLabel}`, mo:snap.ry.mo, wk:snap.ry.wk,
+    updated:snap.ry.updated, live:snap.ry.live, fmt:v=>v.toFixed(2)+'%',
+    deltaFmt:d=>`${d>0?'+':d<0?'−':'±'}${Math.abs(d).toFixed(0)} bps` });
+  usSetCard('usDxy', { val:snap.dxy.val, trendDelta:snap.dxy.moPct, flatBand:0.15,
+    prev:snap.dxy.prev == null ? 'n/a · live series required' : `${snap.dxy.prev.toFixed(2)} · ${snap.dxy.prevLabel}`,
+    mo:snap.dxy.moPct, wk:snap.dxy.wkPct, updated:snap.dxy.updated, live:snap.dxy.live,
+    fmt:v=>v.toFixed(2), deltaFmt:d=>`${d>0?'+':d<0?'−':'±'}${Math.abs(d).toFixed(2)}%` });
+}
+
+// ─── timeline (Recent Changes) ────────────────────────────────────────────────
+function usReleaseImpact(r) {   // rule-based pills for a release row
+  const surprise = r.actual - r.forecast;
+  const hotInfl = /CPI|PCE/.test(r.ind) && surprise > 0.05;
+  const coolInfl = /CPI|PCE/.test(r.ind) && surprise < -0.05;
+  if (/NFP/.test(r.ind)) {
+    if (surprise > 50)  return { gold:'bear', silver:'bear', eq:'bear' };   // hawkish repricing
+    if (surprise > 0)   return { gold:'bear', silver:'neut', eq:'bull' };   // goldilocks
+    if (surprise < -50) return { gold:'bull', silver:'neut', eq:'bear' };   // growth scare
+    return { gold:'neut', silver:'neut', eq:'neut' };
+  }
+  if (hotInfl)  return { gold:'bear', silver:'bear', eq:'bear' };           // real-rate / hawkish channel
+  if (coolInfl) return { gold:'bull', silver:'bull', eq:'bull' };
+  return { gold:'neut', silver:'neut', eq:'neut' };
+}
+function usMoveImpact(m) {
+  const up = m.val > m.prev;
+  return { gold: up?'bear':'bull', silver: up?'bear':'bull', eq: up?'bear':'bull' };  // RY/DXY up = hawkish
+}
+function usPill(t) {
+  const map = { bull:['Bullish','bull'], bear:['Bearish','bear'], neut:['Neutral','neut'] };
+  const [txt, cls] = map[t]; return `<span class="pill ${cls}">${txt}</span>`;
+}
+function usLiveMoveEvents() {   // significant daily moves from live series
+  const ev = [];
+  const scan = (ser, ind, thresh, fmtV, unit, src) => {
+    if (!ser) return;
+    for (let i = Math.max(1, ser.length-22); i < ser.length; i++) {
+      const d = ser[i].val - ser[i-1].val;
+      if (Math.abs(d) >= thresh)
+        ev.push({ type:'move', date:ser[i].date, ind, prev:ser[i-1].val, val:ser[i].val, unit, fmtV, live:true, src,
+                  note:'daily move ≥ threshold' });
+    }
+  };
+  scan(usState.series.ry, 'Real Yield 10Y', 0.05, v=>v.toFixed(2)+'%', undefined, usState.status.ry);
+  scan(usState.series.dxy, 'DXY', 0.40, v=>v.toFixed(2), undefined, usState.status.dxy);
+  return ev;
+}
+function usUpcomingFF() {       // current-week consensus rows from FF feed (no actual yet)
+  if (!usState.ff) return [];
+  const today = new Date().toISOString().slice(0,10);
+  return usState.ff.filter(e => e.date > today && e.forecast != null).map(e => ({
+    type:'upcoming', date:e.date, ind:e.title + ' · upcoming', forecast:e.forecast, previous:e.previous, live:true }));
+}
+function usSetWindow(days) {
+  usState.windowDays = days;
+  document.getElementById('usTab7').classList.toggle('active', days === 7);
+  document.getElementById('usTab30').classList.toggle('active', days === 30);
+  usRenderTimeline();
+}
+function usRenderTimeline() {
+  const cutoff = new Date(Date.now() - usState.windowDays*86400000);
+  const rows = [];
+  for (const r of US_RELEASES) if (new Date(r.date) >= cutoff)
+    rows.push({ sortDate:r.date, html: usReleaseRow(r) });
+  const moves = usState.series.ry || usState.series.dxy ? usLiveMoveEvents()
+              : US_MOVES.map(m => ({ ...m, type:'move', fmtV:v=>v.toFixed(2)+(m.unit==='%'?'%':''), live:false }));
+  for (const m of moves) if (new Date(m.date) >= cutoff)
+    rows.push({ sortDate:m.date, html: usMoveRow(m) });
+  for (const u of usUpcomingFF()) rows.push({ sortDate:u.date, html: usUpcomingRow(u) });
+  rows.sort((a,b) => b.sortDate.localeCompare(a.sortDate));
+  document.getElementById('usTimelineBody').innerHTML = rows.map(r => r.html).join('');
+  document.getElementById('usTimelineEmpty').style.display = rows.length ? 'none' : 'block';
+}
+function usReleaseRow(r) {
+  const u = r.unit === 'K' ? 'K' : '%';
+  const f = v => r.unit === 'K' ? `${v>=0?'+':''}${v}K` : `${v.toFixed(1)}%`;
+  const sur = +(r.actual - r.forecast).toFixed(2);
+  const surTxt = r.unit === 'K' ? `${sur>0?'+':''}${sur}K` : `${sur>0?'+':''}${sur.toFixed(1)}pp`;
+  const surCls = Math.abs(sur) < (r.unit==='K' ? 5 : 0.05) ? '' : sur > 0 ? 'sur-pos' : 'sur-neg';
+  const d = r.actual - r.previous;
+  const imp = usReleaseImpact(r);
+  return `<tr>
+    <td class="mono">${usFmtDate(r.date)}</td>
+    <td><div class="us-ind-cell">${r.ind}</div>
+        <div class="us-afp">Act ${f(r.actual)} · Fcst ${f(r.forecast)} · Prev ${f(r.previous)} · Surprise <span class="${surCls}">${surTxt}</span></div>
+        ${r.note ? `<div class="us-afp">${r.note}</div>` : ''}</td>
+    <td class="mono">${f(r.previous)}</td>
+    <td class="mono"><strong>${f(r.actual)}</strong></td>
+    <td class="mono chg ${d>0?'up':d<0?'down':''}">${d>0?'+':''}${r.unit==='K'?Math.round(d)+'K':d.toFixed(1)+'pp'}</td>
+    <td>${usPill(imp.gold)}</td><td>${usPill(imp.silver)}</td><td>${usPill(imp.eq)}</td>
+    <td class="us-row-src">${'release · verified'}</td></tr>`;
+}
+function usMoveRow(m) {
+  const d = m.val - m.prev, pct = /DXY/.test(m.ind);
+  const dTxt = pct ? `${d>0?'+':''}${(d/m.prev*100).toFixed(2)}%` : `${d>0?'+':''}${(d*100).toFixed(0)} bps`;
+  const imp = usMoveImpact(m);
+  return `<tr>
+    <td class="mono">${usFmtDate(m.date)}</td>
+    <td><div class="us-ind-cell">${m.ind}</div>${m.note ? `<div class="us-afp">${m.note}</div>` : ''}</td>
+    <td class="mono">${m.fmtV(m.prev)}</td>
+    <td class="mono"><strong>${m.fmtV(m.val)}</strong></td>
+    <td class="mono chg ${d>0?'up':'down'}">${dTxt}</td>
+    <td>${usPill(imp.gold)}</td><td>${usPill(imp.silver)}</td><td>${usPill(imp.eq)}</td>
+    <td class="us-row-src">${m.live ? PROV[m.src || 'latest'].word : 'baseline'}</td></tr>`;
+}
+function usUpcomingRow(u) {
+  return `<tr style="opacity:.65">
+    <td class="mono">${usFmtDate(u.date)}</td>
+    <td><div class="us-ind-cell">${u.ind}</div><div class="us-afp">FF consensus · actual pending</div></td>
+    <td class="mono">${u.previous ?? '–'}</td>
+    <td class="mono">Fcst ${u.forecast}</td>
+    <td class="mono">–</td><td>${usPill('neut')}</td><td>${usPill('neut')}</td><td>${usPill('neut')}</td>
+    <td class="us-row-src">FF feed · live</td></tr>`;
+}
+
+// ─── monthly trend mini-charts ────────────────────────────────────────────────
+let usTrendCharts = {};
+let usSurpriseCharts = { infl: null, nfp: null };
+
+function usTrendSeries(key) {
+  // live series → last 13 monthly obs (cpi/pce/nfp) or full fetched window (ry/dxy)
+  const live = usState.series[key];
+  if (live && live.length >= 2) {
+    const isMonthly = ['cpi','pce','nfp'].includes(key);
+    const pts = isMonthly ? live.slice(-13) : live;
+    return {
+      labels: pts.map(o => isMonthly ? usMonthLabel(o.date) : usFmtDate(o.date)),
+      vals:   pts.map(o => o.val),
+      live:   true,
+      src:    usState.status[key],
+      note:   `${pts.length} obs · ${PROV[usState.status[key]].word} · latest ${isMonthly ? usMonthLabel(pts[pts.length-1].date) : usFmtDate(pts[pts.length-1].date)}`
+    };
+  }
+  const fb = US_MONTHLY[key];
+  return { labels: fb.map(o => o.label), vals: fb.map(o => o.val), live: false, src: 'baseline',
+           note: `${fb.length} verified prints · baseline ${US_VINTAGE} · no interpolation` };
+}
+
+function usBuildTrendCharts() {
+  if (typeof Chart === 'undefined') return;   // CDN failed → skip charts, keep cards alive
+
+  // ── combined inflation & real-rate chart (CPI + Core PCE + Real Yield, shared % axis) ──
+  const inflEl = document.getElementById('usTrendInfl');
+  if (inflEl) {
+    const sCpi = usTrendSeries('cpi'), sPce = usTrendSeries('pce'), sRy = usTrendSeries('ry');
+    // unify x labels by month/obs label; align by label, leave gaps as null (no interpolation)
+    const labelSet = [];
+    [sCpi, sPce, sRy].forEach(s => s.labels.forEach(l => { if (!labelSet.includes(l)) labelSet.push(l); }));
+    // chronological-ish: keep insertion order but sort by parseable date when possible
+    const parseL = l => { const d = new Date(l.replace(/(\d{2}) (\w+) (\d{2})/, '$2 $1 20$3')); return isNaN(d) ? new Date(l + ' 1') : d; };
+    labelSet.sort((a,b) => parseL(a) - parseL(b));
+    const align = s => labelSet.map(l => { const i = s.labels.indexOf(l); return i >= 0 ? s.vals[i] : null; });
+    const tag = document.getElementById('usTrendInflTag');
+    setStateTag(tag, [sCpi.src, sPce.src, sRy.src]);
+    document.getElementById('usTrendInflNote').textContent =
+      `CPI ${PROV[sCpi.src].word} · PCE ${PROV[sPce.src].word} · RY ${PROV[sRy.src].word} · ${labelSet.length} periods · gaps left null (no interpolation) · % axis shared`;
+    if (usTrendCharts.infl) usTrendCharts.infl.destroy();
+    usTrendCharts.infl = new Chart(inflEl.getContext('2d'), {
+      type: 'line',
+      data: { labels: labelSet, datasets: [
+        { label: 'US CPI', data: align(sCpi), borderColor: '#dc2626', backgroundColor: '#dc2626', pointRadius: 3, pointHoverRadius: 6, borderWidth: 2, tension: 0.3, spanGaps: true },
+        { label: 'Core PCE', data: align(sPce), borderColor: '#9333ea', backgroundColor: '#9333ea', borderDash: [6,4], pointRadius: 3, pointHoverRadius: 6, borderWidth: 2, tension: 0.3, spanGaps: true },
+        { label: 'Real Yield 10Y', data: align(sRy), borderColor: '#b45309', backgroundColor: '#b45309', borderDash: [2,3], pointRadius: 3, pointStyle: 'rectRot', pointHoverRadius: 6, borderWidth: 2, tension: 0.3, spanGaps: true }
+      ]},
+      options: {
+        responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { display: false },
+          tooltip: { backgroundColor: 'rgba(15,23,42,0.95)', titleColor: '#f1f5f9', bodyColor: '#cbd5e1',
+            padding: 11, titleFont: { family: "'Inter', sans-serif", size: 11, weight: '700' }, bodyFont: { family: "'JetBrains Mono', monospace", size: 10.5 },
+            callbacks: { label: t => t.parsed.y == null ? null : `  ${t.dataset.label.padEnd(14)}: ${t.parsed.y.toFixed(2)}%` } } },
+        scales: {
+          y: { ticks: { font: { family:'JetBrains Mono', size: 10 }, color:'#9b958f', callback: v => v.toFixed(1) + '%' }, grid: { color:'rgba(0,0,0,0.05)' } },
+          x: { ticks: { font: { family:'JetBrains Mono', size: 9 }, color:'#9b958f', maxRotation: 45, autoSkip: true, maxTicksLimit: 8 }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // ── standalone NFP (K jobs) and DXY (index) — incompatible scales, kept separate ──
+  const cfg = [
+    { key:'nfp', id:'usTrendNfp', color:'#0e7490', type:'bar',  fmt:v=>(v>=0?'+':'')+Math.round(v)+'K' },
+    { key:'dxy', id:'usTrendDxy', color:'#1e40af', type:'line', fmt:v=>v.toFixed(2) }
+  ];
+  for (const c of cfg) {
+    const el = document.getElementById(c.id);
+    if (!el) continue;
+    const s = usTrendSeries(c.key);
+    const tag = document.getElementById(c.id + 'Tag');
+    setStateTag(tag, [s.src]);
+    document.getElementById(c.id + 'Note').textContent = s.note;
+    if (usTrendCharts[c.key]) usTrendCharts[c.key].destroy();
+    const vmin = Math.min(...s.vals), vmax = Math.max(...s.vals), pad = Math.max((vmax - vmin) * 0.25, 0.05);
+    usTrendCharts[c.key] = new Chart(el.getContext('2d'), {
+      type: c.type,
+      data: { labels: s.labels, datasets: [{
+        data: s.vals, borderColor: c.color, backgroundColor: c.type === 'bar' ? c.color + 'cc' : c.color,
+        pointRadius: s.vals.length > 8 ? 2.5 : 4, pointBackgroundColor: c.color,
+        borderWidth: 2, tension: 0.3, fill: false, borderRadius: 3,
+        barPercentage: 0.55, categoryPercentage: 0.7
+      }]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false },
+          tooltip: { callbacks: { label: t => c.fmt(t.parsed.y) } } },
+        scales: {
+          y: { min: c.type === 'bar' ? Math.min(0, +(vmin - pad).toFixed(2)) : +(vmin - pad).toFixed(2), max: +(vmax + pad).toFixed(2),
+               ticks: { font: { family:'JetBrains Mono', size: 9 }, color:'#9b958f',
+                        maxTicksLimit: 4, callback: v => c.fmt(v) },
+               grid: { color:'rgba(0,0,0,0.05)' } },
+          x: { ticks: { font: { family:'JetBrains Mono', size: 8.5 }, color:'#9b958f',
+                        maxRotation: 45, autoSkip: true, maxTicksLimit: 6 },
+               grid: { display: false } }
+        }
+      }
+    });
+  }
+}
+
+// ─── surprise tracker (Actual − Forecast per release) ─────────────────────────
+// ─── surprise tracker · bullet charts (Actual vs Forecast) + impact tracker ───
+const SUR_COLOR = { hawk:'#dc2626', dove:'#16a34a', neut:'#9b958f' };
+function usSurColor(actual, forecast, unit) {
+  if (actual == null) return SUR_COLOR.neut;
+  const band = unit === 'K' ? 5 : 0.05;
+  const d = actual - forecast;
+  return Math.abs(d) < band ? SUR_COLOR.neut : d > 0 ? SUR_COLOR.hawk : SUR_COLOR.dove;
+}
+
+// merge verified releases + live FF actuals + upcoming consensus into one event list
+function usSurEvents() {
+  const ev = [];
+  for (const r of US_RELEASES) {
+    const type = r.unit === 'K' ? 'nfp' : 'infl';
+    ev.push({ date:r.date, ind:r.ind, actual:r.actual, forecast:r.forecast,
+              previous:r.previous, unit:r.unit, type, upcoming:false });
+  }
+  // upcoming from baseline, then let live FF refine/extend
+  const haveActual = (date, ind) => US_RELEASES.some(r => r.date === date && r.ind.split(' · ')[0] === ind.split(' · ')[0]);
+  const todayIso = new Date().toISOString().slice(0,10);
+  usState.expiredUpcoming = 0;
+  for (const u of US_UPCOMING) {
+    if (haveActual(u.date, u.ind)) continue;           // auto-fill: realized takes over
+    if (u.date < todayIso) { usState.expiredUpcoming++; continue; }   // date passed, actual not logged
+    ev.push({ date:u.date, ind:u.ind, actual:null, forecast:u.forecast,
+              previous:u.previous, unit:u.unit, type:u.type, upcoming:true });
+  }
+  // live FF upcoming (current-week consensus) — only if not already present
+  if (usState.ff) {
+    const today = new Date().toISOString().slice(0,10);
+    for (const e of usState.ff) {
+      if (!e || e.date <= today || e.forecast == null) continue;
+      const isNfp = /Non-Farm|Payroll/i.test(e.title);
+      const unit = isNfp ? 'K' : '%';
+      if (ev.some(x => x.date === e.date && x.unit === unit)) continue;
+      ev.push({ date:e.date, ind:(e.title||'release') + ' · upcoming', actual:e.actual ?? null,
+                forecast:e.forecast, previous:e.previous, unit, type:isNfp ? 'nfp' : 'infl',
+                upcoming:(e.actual == null) });
+    }
+  }
+  return ev.sort((a,b) => a.date.localeCompare(b.date));
+}
+
+// custom plugin: grey forecast tick on every bar; dashed hollow outline + label on upcoming
+function usBulletPlugin(events) {
+  return {
+    id: 'usBullet',
+    afterDatasetsDraw(chart) {
+      const { ctx, scales: { y } } = chart;
+      const meta = chart.getDatasetMeta(0);
+      ctx.save();
+      meta.data.forEach((bar, i) => {
+        const e = events[i]; if (!e) return;
+        const halfW = (bar.width || 16) / 2;
+        // forecast tick (consensus marker)
+        const fy = y.getPixelForValue(e.forecast);
+        ctx.strokeStyle = '#4b4b47'; ctx.lineWidth = 2; ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(bar.x - halfW - 3, fy); ctx.lineTo(bar.x + halfW + 3, fy); ctx.stroke();
+        if (e.upcoming) {
+          // dashed hollow bar outline from base to forecast
+          const base = y.getPixelForValue(0);
+          ctx.strokeStyle = '#6b6460'; ctx.lineWidth = 1.3; ctx.setLineDash([4,3]);
+          ctx.strokeRect(bar.x - halfW, Math.min(fy, base), halfW * 2, Math.abs(base - fy));
+          ctx.setLineDash([]);
+          ctx.fillStyle = '#6b6460'; ctx.font = '500 8.5px JetBrains Mono'; ctx.textAlign = 'center';
+          ctx.fillText('consensus', bar.x, Math.min(fy, base) - 4);
+        } else {
+          // surprise value label above/below the actual bar
+          const sur = +(e.actual - e.forecast).toFixed(2);
+          const txt = e.unit === 'K' ? `${sur>0?'+':''}${Math.round(sur)}K` : `${sur>0?'+':''}${sur.toFixed(1)}pp`;
+          ctx.fillStyle = usSurColor(e.actual, e.forecast, e.unit);
+          ctx.font = '500 9px JetBrains Mono'; ctx.textAlign = 'center';
+          const ay = y.getPixelForValue(e.actual);
+          ctx.fillText(txt, bar.x, e.actual >= 0 ? Math.min(ay, fy) - 6 : Math.max(ay, fy) + 13);
+        }
+      });
+      ctx.restore();
+    }
+  };
+}
+
+function usBuildBulletPanel(canvasId, chartKey, events, unit, yTitle, fmtY) {
+  const el = document.getElementById(canvasId);
+  if (!el) return;
+  // shared time-domain across both panels so they align vertically
+  const allDates = usSurEvents().map(e => new Date(e.date).getTime());
+  const pad = 6 * 86400000;
+  const xMin = new Date(Math.min(...allDates) - pad);
+  const xMax = new Date(Math.max(...allDates) + pad);
+  const data = events.map(e => ({ x: e.date, y: e.actual != null ? e.actual : e.forecast }));
+  // de-collide same-date releases (e.g. CPI + Core CPI share a date) by nudging x ±days
+  const byDate = {};
+  events.forEach((e, i) => { (byDate[e.date] = byDate[e.date] || []).push(i); });
+  Object.values(byDate).forEach(idxs => {
+    if (idxs.length < 2) return;
+    const spread = 7 * 86400000;                       // ~1 week total spread
+    idxs.forEach((idx, k) => {
+      const off = (k - (idxs.length - 1) / 2) * (spread / idxs.length);
+      data[idx].x = new Date(new Date(events[idx].date).getTime() + off);
+    });
+  });
+  const bg = events.map(e => e.upcoming ? 'transparent' : usSurColor(e.actual, e.forecast, e.unit) + 'cc');
+  if (usSurpriseCharts[chartKey]) usSurpriseCharts[chartKey].destroy();
+  usSurpriseCharts[chartKey] = new Chart(el.getContext('2d'), {
+    type: 'bar',
+    data: { datasets: [{ data, backgroundColor: bg, borderWidth: 0, borderRadius: 3, barThickness: 16 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 16 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(15,23,42,0.95)', titleColor: '#f1f5f9', bodyColor: '#cbd5e1',
+          borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 11,
+          titleFont: { family: "'Inter', sans-serif", size: 11, weight: '700' },
+          bodyFont: { family: "'JetBrains Mono', monospace", size: 10.5 },
+          callbacks: {
+            title: c => { const e = events[c[0].dataIndex];
+              return `${e.ind}  ·  ${new Date(e.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}`; },
+            label: c => {
+              const e = events[c.dataIndex];
+              const f = v => v == null ? '—' : unit === 'K' ? `${v>=0?'+':''}${Math.round(v)}K` : `${v.toFixed(1)}%`;
+              const lines = [
+                `  Actual    : ${e.upcoming ? 'pending' : f(e.actual)}`,
+                `  Forecast  : ${f(e.forecast)}`,
+                `  Previous  : ${f(e.previous)}`
+              ];
+              if (!e.upcoming) {
+                const sur = +(e.actual - e.forecast).toFixed(2);
+                lines.push(`  Surprise  : ${unit==='K' ? (sur>0?'+':'')+Math.round(sur)+'K' : (sur>0?'+':'')+sur.toFixed(1)+'pp'}`);
+              }
+              return lines;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { type: 'time', min: xMin, max: xMax,
+             time: { unit: 'month', tooltipFormat: 'dd MMM yyyy', displayFormats: { month: "MMM ''yy" } },
+             grid: { color: 'rgba(0,0,0,0.04)' },
+             ticks: { font: { family: "'JetBrains Mono', monospace", size: 9 }, color: '#9b958f', maxRotation: 45, autoSkip: true, maxTicksLimit: 8 } },
+        y: { grid: { color: ctx => ctx.tick.value === 0 ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.05)' },
+             ticks: { font: { family: "'JetBrains Mono', monospace", size: 9 }, color: '#9b958f', callback: fmtY },
+             title: { display: true, text: yTitle, font: { family: "'JetBrains Mono', monospace", size: 9.5 }, color: '#9b958f' } }
+      }
+    },
+    plugins: [usBulletPlugin(events)]
+  });
+}
+
+// recent-surprise → asset headwind/tailwind mapping (Gold/Silver ETFs, Nifty Next 50, Small Caps)
+function usBuildImpactTracker() {
+  const grid = document.getElementById('usImpactGrid');
+  if (!grid) return;
+  const cur = usSnapshot().cur;
+  if (!cur.cpi || !cur.nfp) {     // the tracker reads only the manual surprise log
+    const tag = document.getElementById('usImpactTag');
+    if (tag) setStateTag(tag, ['stale']);
+    grid.innerHTML = `<div class="us-impact-card" style="--ic:#9a3412"><div class="us-impact-asset">Not current</div>
+      <div class="us-impact-reason">CPI: ${cur.why.cpi || 'current'}.<br>NFP: ${cur.why.nfp || 'current'}.<br>
+      Add the latest releases with their consensus to <code>US_RELEASES</code> to re-enable this read.</div></div>`;
+    document.getElementById('usImpactNote').textContent =
+      'Withheld: this tracker maps the manual surprise log, which does not cover the latest published prints. Consensus forecasts are not automated (no accessible feed).';
+    return;
+  }
+  const ev = usSurEvents().filter(e => !e.upcoming);
+  const inflRecent = ev.filter(e => e.type === 'infl').slice(-3);
+  const nfpRecent  = ev.filter(e => e.type === 'nfp').slice(-1);
+  const inflLean = inflRecent.reduce((a, e) => a + (e.actual - e.forecast), 0);   // pp, + = hot
+  const nfpLean  = nfpRecent.reduce((a, e) => a + (e.actual - e.forecast), 0);     // K, + = strong
+  const hawkish = inflLean > 0.05 || nfpLean > 50;
+  const dovish  = inflLean < -0.05 && nfpLean < 0;
+  const dxyUp = usState.series.dxy ? (usState.series.dxy.length >= 2 &&
+                  usState.series.dxy[usState.series.dxy.length-1].val > usState.series.dxy[0].val)
+                : US_FALLBACK.dxy.monthPct > 0;
+
+  const V = (cls, arr, txt) => ({ cls, arr, txt });
+  const tail = (t) => V('iv-tail', '▲', t), head = (t) => V('iv-head', '▼', t), neut = (t) => V('iv-neut', '▬', t);
+  const assets = [
+    { name:'Gold ETFs', color:'#b45309',
+      v: hawkish ? head('Headwind') : dovish ? tail('Tailwind') : neut('Mixed'),
+      reason: hawkish ? 'hot prints lift real yields → gold opportunity cost up'
+            : dovish ? 'cooling data → real yields fall, gold bid'
+            : 'no clear real-rate signal from recent surprises' },
+    { name:'Silver ETFs', color:'#6b7280',
+      v: hawkish ? head('Headwind') : dovish ? tail('Tailwind') : neut('Mixed'),
+      reason: hawkish ? 'real-rate drag + risk-off on hawkish repricing (higher beta than gold)'
+            : dovish ? 'dovish + industrial demand can amplify upside vs gold'
+            : 'tracks gold with extra cyclical noise' },
+    { name:'Nifty Next 50', color:'#1e40af',
+      v: (hawkish && dxyUp) ? head('Headwind') : (nfpLean > 0 && inflLean <= 0.05) ? tail('Goldilocks') : neut('Mixed'),
+      reason: (hawkish && dxyUp) ? 'stronger $ + hawkish Fed → FII outflow pressure'
+            : (nfpLean > 0 && inflLean <= 0.05) ? 'growth without inflation scare supports flows'
+            : 'DXY direction is the swing factor — watch FII prints' },
+    { name:'Small Caps', color:'#dc2626',
+      v: (hawkish || dxyUp) ? head('Headwind') : dovish ? tail('Tailwind') : neut('Mixed'),
+      reason: (hawkish || dxyUp) ? 'most liquidity/DXY-sensitive — first to de-rate on tightening'
+            : dovish ? 'easing liquidity + risk-on favours high-beta small caps'
+            : 'high beta to any shift in global liquidity regime' }
+  ];
+  grid.innerHTML = assets.map(a => `
+    <div class="us-impact-card" style="--ic:${a.color}">
+      <div class="us-impact-asset">${a.name}</div>
+      <div class="us-impact-verdict ${a.v.cls}"><span class="arr">${a.v.arr}</span>${a.v.txt}</div>
+      <div class="us-impact-reason">${a.reason}</div>
+    </div>`).join('');
+  const regime = hawkish ? 'HAWKISH lean' : dovish ? 'DOVISH lean' : 'MIXED / in-line';
+  document.getElementById('usImpactNote').textContent =
+    `Regime read: ${regime} · inflation surprise sum (last 3) ${inflLean>0?'+':''}${inflLean.toFixed(2)}pp · NFP surprise (last) ${nfpLean>0?'+':''}${Math.round(nfpLean)}K · DXY ${dxyUp?'rising':'flat/down'} · directional model, not advice — safe-haven bids & positioning can override.`;
+}
+
+function usBuildSurpriseChart() {
+  if (typeof Chart === 'undefined') return;
+  const ev = usSurEvents();
+  const infl = ev.filter(e => e.type === 'infl');
+  const nfp  = ev.filter(e => e.type === 'nfp');
+  usBuildBulletPanel('usSurpriseInfl', 'infl', infl, '%', 'YoY %', v => v.toFixed(1) + '%');
+  usBuildBulletPanel('usSurpriseNfp',  'nfp',  nfp,  'K', 'K jobs', v => v + 'K');
+  usBuildImpactTracker();
+  const real = ev.filter(e => !e.upcoming), up = ev.filter(e => e.upcoming);
+  const lastLogged = US_RELEASES.map(r => r.date).sort().pop();
+  document.getElementById('usSurpriseNote').textContent =
+    `MANUAL log (last entry ${lastLogged || '–'}) · ${real.length} realized releases + ${up.length} upcoming (hollow)` +
+    (usState.expiredUpcoming ? ` · ${usState.expiredUpcoming} past 'upcoming' rows hidden (date passed, actual not logged)` : '') + ` · forecast tick = consensus · auto-fills when US_RELEASES gains the dated actual · time axis = true calendar spacing · source: manual US_RELEASES + US_UPCOMING.`;
+}
+
+// ─── orchestrator ─────────────────────────────────────────────────────────────
+function usRenderAll() {
+  const snap = usSnapshot();
+  usRenderCards(snap);
+  usRenderScore('usScoreGold', 'Gold', usScore('gold', snap));
+  usRenderScore('usScoreSilver', 'Silver', usScore('silver', snap));
+  usRenderScore('usScoreEq', 'Indian Equities', usScore('eq', snap));
+  usRenderTimeline();
+  usBuildTrendCharts();
+  usBuildSurpriseChart();
+  const vals = ['cpi','pce','nfp','ry','dxy'].map(k => usState.status[k]);
+  const chip = document.getElementById('usStatusChip');
+  chip.textContent = 'US: ' + stateCounts(vals) + ' · consensus manual';
+  chip.classList.toggle('has-live', vals.includes('latest'));
+  document.getElementById('usVintage').textContent = US_VINTAGE;
+}
+function loadUSData() {
+  usLoadFromSnapshot();
+  usRenderAll();
+}
+
+// ─── MAIN LOAD ────────────────────────────────────────────────────────────────
+// 1) paint baseline + validated saved data immediately; 2) ask the local server to refresh
+// due sources (every open/reload); 3) re-render with whatever arrived. Each render step is
+// isolated, so a chart/CDN failure can never stop cards, badges or the Refresh button.
+let loadSeq = 0;
+const RENDER_ERRORS = [];
+function guard(name, fn) {
+  try { fn(); } catch (e) { console.error('render step failed:', name, e); RENDER_ERRORS.push(`${name}: ${e.message}`); }
+}
+function renderAll() {
+  RENDER_ERRORS.length = 0;
+  sourceStatus = { repo:'baseline', cpi:'baseline', gdp:'baseline', usdinr:'baseline', brent:'baseline' };
+  let data = null;
+  guard('India data', () => {
+    data = assembleIndiaData();
+    applyFx(data); applyBrent(data); applyCrossChecks(data);
+    const cpiX = entryState('MOSPI:CPI_2024'), gdpX = entryState('MOSPI:GDP_2022_23'), rbiX = entryState('RBI:POLICY_RATES');
+    sourceStatus.cpi = cpiX.st ? cpiX.state : 'baseline';
+    sourceStatus.gdp = gdpX.st ? gdpX.state : 'baseline';
+    sourceStatus.repo = rbiX.st ? rbiX.state : 'baseline';
+  });
+  if (data) {
+    guard('macro chart', () => chartOrNotice('macroChart', () => buildChart(data)));
+    guard('external charts', () => chartOrNotice('externalMonthlyChart', () => buildExternalChart()));
+    guard('stat cards', () => updateStatCards(data));
+  }
+  guard('source badges', updateSourceBadges);
+  guard('US section', loadUSData);
+  guard('status table', renderStatusTable);
+  guard('header badge', updateHeaderBadge);
+  guard('axis label', () => { document.getElementById('axisEnd').textContent = QUARTERS[QUARTERS.length - 1]; });
+  document.getElementById('vintageDate').textContent = DATA_VINTAGE;
+  if (RENDER_ERRORS.length) console.warn('render errors:', RENDER_ERRORS);
+}
+function chartOrNotice(canvasId, build) {
+  const canvas = document.getElementById(canvasId);
+  const holder = canvas && canvas.parentElement;
+  let note = holder && holder.querySelector('.chart-unavailable');
+  if (typeof Chart === 'undefined') {
+    if (holder && !note) {
+      note = document.createElement('div'); note.className = 'chart-unavailable';
+      note.textContent = 'Chart library (Chart.js CDN) did not load, so charts are unavailable. Figures in the cards, badges and status table are unaffected.';
+      holder.appendChild(note);
+    }
+    return;
+  }
+  if (note) note.remove();
+  build();
+}
+
+async function serverRefresh(force) {
+  try {
+    const h = await fetch('/api/health', { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+    const hj = h.ok ? await h.json() : null;
+    if (!hj || hj.app !== 'indian-macro-dashboard') throw new Error('not the dashboard server');
+  } catch (e) {
+    RUN.mode = 'http-no-server';
+    return false;
+  }
+  RUN.mode = 'server';
+  setBadge('loading', force ? 'Re-checking all sources…' : 'Checking sources…');
+  const r = await fetch('/api/refresh' + (force ? '?force=1' : ''), {
+    method: 'POST', headers: { 'X-Dashboard': '1' }, cache: 'no-store', signal: AbortSignal.timeout(180000) });
+  let j = null;
+  try { j = await r.json(); } catch (e) { /* handled below */ }
+  if (!r.ok || !j || !j.snapshot) throw new Error((j && j.error) || `refresh request failed (HTTP ${r.status})`);
+  window.MACRO_SNAPSHOT = j.snapshot;
+  RUN.ok = true; RUN.at = j.run.at; RUN.forced = !!j.run.forced; RUN.problems = j.run.problems || [];
+  RUN.durationMs = j.run.duration_ms;
+  RUN.results = Object.fromEntries((j.run.results || []).map(x => [x.id, x]));
+  return true;
+}
+
+function showNotice(kind, html) {
+  const n = document.getElementById('modeNotice');
+  if (!kind) { n.hidden = true; return; }
+  n.className = 'mode-notice' + (kind === 'info' ? ' info' : '');
+  n.innerHTML = html; n.hidden = false;
+}
+const escHtml = t => String(t).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+
+async function loadAllData(force = false) {
+  const seq = ++loadSeq;
+  setLoading(true);
+  RUN.ok = false; RUN.results = {}; RUN.error = null; RUN.fxDirect = null; RUN.problems = [];
+  try {
+    renderAll();                                   // saved data / baseline, instantly
+    if (location.protocol === 'file:') {
+      RUN.mode = 'file';
+      try { RUN.fxDirect = await fetchFxDirect(); } catch (e) { console.warn('direct ECB fetch failed:', e.message); }
+    } else {
+      try {
+        const ok = await serverRefresh(force);
+        if (!ok) showNotice('warn', '<strong>Dashboard server not detected — showing saved data only, no automatic updates.</strong> ' +
+          'Open the dashboard with <code>Open_Indian_Macro_Dashboard.cmd</code> to enable updates.');
+      } catch (e) {
+        RUN.ok = false; RUN.error = e.message;
+        showNotice('warn', `<strong>Data refresh failed — showing saved data.</strong> ${escHtml(e.message)}. Press Refresh Data to retry.`);
+      }
+    }
+    if (seq !== loadSeq) return;                   // a newer load started meanwhile
+    renderAll();
+    if (RUN.mode === 'server' && RUN.ok) schedulePendingPoll(seq, 0);
+    if (RUN.mode === 'server' && RUN.ok) {
+      const failed = Object.values(RUN.results).filter(x => x.action === 'failed');
+      const parts = [];
+      const pending = Object.values(RUN.results).filter(x => x.action === 'pending');
+      if (pending.length)
+        parts.push(`<strong>${pending.length} slow source${pending.length > 1 ? 's are' : ' is'} still being checked</strong> ` +
+          `(${pending.map(x => escHtml(x.id)).join(', ')}). Saved data is shown meanwhile; results apply automatically when they arrive.`);
+      if (failed.length)
+        parts.push(`<strong>${failed.length} of ${Object.keys(RUN.results).length} sources could not be refreshed</strong> ` +
+          `(${failed.map(x => escHtml(x.id + ': ' + x.error.detail)).join('; ')}). Their last saved data is shown and marked CACHED.`);
+      if (RUN.problems.length)
+        parts.push(`<strong>Saved data problem:</strong> ${RUN.problems.map(escHtml).join('; ')}. Affected sources were re-fetched where possible.`);
+      showNotice(parts.length ? 'warn' : null, parts.join('<br>'));
+    }
+  } catch (e) {
+    console.error(e);
+    showNotice('warn', `<strong>Unexpected error while loading data:</strong> ${escHtml(e.message)}. Saved data is still shown where possible.`);
+  } finally {
+    if (seq === loadSeq) { setLoading(false); updateTimestamp(); guard('header badge', updateHeaderBadge); }
+  }
+}
+
+// Slow providers finish in the background on the server; pick their results up progressively.
+function schedulePendingPoll(seq, attempt) {
+  const pending = Object.values(RUN.results).some(x => x.action === 'pending');
+  if (!pending || attempt >= 12) return;
+  setTimeout(async () => {
+    if (seq !== loadSeq) return;
+    try {
+      const prevResults = RUN.results;
+      if (!(await serverRefresh(false)) || seq !== loadSeq) return;
+      // keep this load's outcome for sources that were not pending (the poll only reuses them)
+      for (const [id, r] of Object.entries(prevResults)) if (r.action !== 'pending' && RUN.results[id] && RUN.results[id].action === 'reused') RUN.results[id] = r;
+      guard('re-render', renderAll);
+      const failedIds = Object.keys(RUN.results).filter(id => entryState(id).state === 'cached');
+      const stillPending = Object.values(RUN.results).filter(x => x.action === 'pending');
+      if (!stillPending.length && !failedIds.length && !RUN.problems.length) showNotice(null);
+      else if (!stillPending.length) showNotice('warn', `<strong>${failedIds.length} source(s) could not be refreshed</strong> ` +
+        `(${failedIds.map(id => { const e = snapEntry(id); return escHtml(id + ': ' + ((e && e.meta.last_error && e.meta.last_error.detail) || 'error')); }).join('; ')}). ` +
+        'Their last saved data is shown and marked CACHED.');
+      updateTimestamp(); guard('header badge', updateHeaderBadge);
+      schedulePendingPoll(seq, attempt + 1);
+    } catch (e) { console.warn('pending poll failed:', e.message); }
+  }, 5000);
+}
+
+function setLoading(isLoading) {
+  const ov1 = document.getElementById('loadingOverlay1');
+  const ov2 = document.getElementById('loadingOverlay2');
+  const btn = document.getElementById('refreshBtn');
+  const icon = document.getElementById('refreshIcon');
+  ov1.classList.toggle('visible', isLoading);
+  ov2.classList.toggle('visible', isLoading);
+  btn.disabled = isLoading;
+  icon.classList.toggle('spinning', isLoading);
+  if (isLoading) setBadge('loading', 'Loading saved data…');
+}
+
+function stateCounts(vals) {
+  const order = ['latest','cached','snapshot','stale','baseline','manual','unavailable'];
+  return order.filter(k => vals.includes(k)).map(k => `${vals.filter(v => v === k).length} ${PROV[k].label[0] + PROV[k].label.slice(1).toLowerCase()}`).join(' · ');
+}
+/* Bug 1 fix (kept): the badge counts per-card outcomes; one success never turns it green. */
+function updateHeaderBadge() {
+  const vals = Object.values(sourceStatus);
+  const allLatest = vals.every(v => v === 'latest');
+  setBadge(allLatest ? 'live' : 'cached', stateCounts(vals));
+}
+
+function setBadge(state, text) {
+  const badge = document.getElementById('statusBadge');
+  const dot = document.getElementById('statusDot');
+  badge.className = 'status-badge ' + state;
+  dot.className = 'status-dot' + (state === 'loading' ? ' pulse' : '');
+  document.getElementById('statusText').textContent = text;
+}
+
+function updateTimestamp() {
+  const mode = { server: RUN.ok ? 'Sources checked' : 'Check failed', file: 'Opened as file (saved data)',
+                 'http-no-server': 'No server (saved data)' }[RUN.mode] || 'Loaded';
+  document.getElementById('timestamp').textContent = `${mode}: ${fmtIST(RUN.ok ? RUN.at : new Date().toISOString())}`;
+}
+
+// ─── STAT CARDS ───────────────────────────────────────────────────────────────
+const lastNonNull = arr => { for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return i; return -1; };
+function updateStatCards(data) {
+  // Repo — card: RBI current published level; chart: manual quarter-end history
+  const rbi = snapEntry('RBI:POLICY_RATES');
+  const ri = lastNonNull(data.repo);
+  if (rbi) {
+    const [d, repo, sdf, msf] = rbi.last;
+    let since = d;
+    for (let k = rbi.obs.length - 1; k >= 0 && rbi.obs[k][1] === repo; k--) since = rbi.obs[k][0];
+    document.getElementById('repoLatest').textContent = repo.toFixed(2) + '%';
+    document.getElementById('repoSub').textContent =
+      `RBI 'Current Rates' (SDF ${sdf.toFixed(2)} / MSF ${msf.toFixed(2)}) · read ${fmtDay(d)}` +
+      (since < d ? `, unchanged since ${fmtDay(since)}` : '') + ' · effective date not published there · ' + provText('RBI:POLICY_RATES');
+    if (ri >= 0) setChange('repoChange', repo - data.repo[ri], 'upBad', `vs ${QUARTERS[ri]} qtr-end (last verified MPC level)`, '%', 2);
+  } else if (ri >= 0) {
+    document.getElementById('repoLatest').textContent = data.repo[ri].toFixed(2) + '%';
+    document.getElementById('repoSub').textContent = `${QUARTERS[ri]} quarter-end · baseline, MPC verified ${DATA_VINTAGE} · current rate not retrieved`;
+    setChange('repoChange', data.repo[ri] - data.repo[ri - 1], 'upBad', `vs ${QUARTERS[ri - 1]}`, '%', 2);
+  }
+  setDot('repoDot', sourceStatus.repo);
+
+  // CPI — card: latest MONTHLY YoY; sub: latest complete-quarter average
+  const ci = lastNonNull(data.cpi);
+  const cm = (liveMeta.cpiMonthly || []);
+  if (cm.length && sourceStatus.cpi !== 'baseline') {
+    const last = cm[cm.length - 1], prev = cm[cm.length - 2];
+    document.getElementById('cpiLatest').textContent = last.v.toFixed(2) + '%';
+    document.getElementById('cpiSub').textContent =
+      `${fmtMonth(last.date)} · monthly YoY · ${last.src}, All-India Combined · ${QUARTERS[ci]} avg ${data.cpi[ci].toFixed(2)}% · ${provText('MOSPI:CPI_2024')}`;
+    if (prev) setChange('cpiChange', last.v - prev.v, 'upBad', `vs ${fmtMonth(prev.date)}`, '%', 2);
+  } else if (ci >= 0) {
+    document.getElementById('cpiLatest').textContent = data.cpi[ci].toFixed(2) + '%';
+    document.getElementById('cpiSub').textContent = `${QUARTERS[ci]} avg of monthly YoY · baseline ${DATA_VINTAGE} · official series not retrieved`;
+    setChange('cpiChange', data.cpi[ci] - data.cpi[ci - 1], 'upBad', `vs ${QUARTERS[ci - 1]}`, '%', 2);
+  }
+  setDot('cpiDot', sourceStatus.cpi);
+
+  // GDP — latest quarter, real YoY
+  const gi = lastNonNull(data.gdp);
+  if (gi >= 0) {
+    const src = pointSrc.gdp[gi];
+    const qs = quarterStart(QUARTERS[gi]), m = +qs.slice(5, 7), y = +qs.slice(0, 4);
+    const fy = m >= 4 ? y : y - 1, fq = m >= 4 ? (m - 4) / 3 + 1 : 4;
+    const fyLabel = `FY${String(fy + 1).slice(2)} Q${fq}`;
+    document.getElementById('gdpLatest').textContent = data.gdp[gi].toFixed(1) + '%';
+    document.getElementById('gdpSub').textContent = src === 'baseline'
+      ? `${QUARTERS[gi]} · baseline ${DATA_VINTAGE} · official series not retrieved`
+      : `${QUARTERS[gi]} (${fyLabel}, ${fmtMonth(qs)}–${fmtMonth(addDays(qs, 62))}) · real, constant prices · ${src} · ` +
+        `next quarter not yet published · ${provText('MOSPI:GDP_2022_23')}`;
+    const gp = gi - 1;
+    if (gp >= 0 && data.gdp[gp] != null) setChange('gdpChange', data.gdp[gi] - data.gdp[gp], 'upGood', `vs ${QUARTERS[gp]}`, '%', 1);
+  }
+  setDot('gdpDot', sourceStatus.gdp);
+
+  // USD/INR — ECB daily reference rate (not a live quote)
+  const ii = lastNonNull(data.usdinr);
+  if (liveMeta.inrSpot !== null) {
+    document.getElementById('inrLatest').textContent = '₹' + liveMeta.inrSpot.toFixed(2);
+    document.getElementById('inrSub').textContent = `ECB reference rate, ${fmtDay(liveMeta.inrSpotDate)} (≈16:00 CET) · not a live quote · ` +
+      (RUN.fxDirect ? 'fetched by browser this load' : provText('ECB:FX'));
+    const qe = QUARTER_ENDS.findLastIndex ? QUARTER_ENDS.findLastIndex(d => d < liveMeta.inrSpotDate) : -1;
+    if (qe >= 0 && data.usdinr[qe] != null) setChange('inrChange', liveMeta.inrSpot - data.usdinr[qe], 'upBad', `vs ${QUARTERS[qe]} qtr-end`, '₹', 2);
+  } else if (ii >= 0) {
+    document.getElementById('inrLatest').textContent = '₹' + data.usdinr[ii].toFixed(2);
+    document.getElementById('inrSub').textContent = `${QUARTERS[ii]} quarter-end · baseline`;
+    setChange('inrChange', data.usdinr[ii] - data.usdinr[ii - 1], 'upBad', `vs ${QUARTERS[ii - 1]}`, '₹', 2);
+  }
+  setDot('inrDot', sourceStatus.usdinr);
+
+  // Brent — monthly average (EIA spot), not a current price
+  const bi = lastNonNull(data.brent);
+  if (liveMeta.brentLatest !== null) {
+    document.getElementById('brentLatest').textContent = '$' + liveMeta.brentLatest.toFixed(1);
+    document.getElementById('brentSub').textContent =
+      `${liveMeta.brentLatestLabel} monthly average of EIA daily spot · not a current price · ${provText('FRED:MCOILBRENTEU')}`;
+    const lq = lastNonNull(pointSrc.brent.map((s, i) => s === 'baseline' ? null : i));
+    if (lq >= 0) setChange('brentChange', liveMeta.brentLatest - data.brent[lq], 'upBad', `vs ${QUARTERS[lq]} avg`, '$', 1);
+  } else if (bi >= 0) {
+    document.getElementById('brentLatest').textContent = '$' + data.brent[bi].toFixed(1);
+    document.getElementById('brentSub').textContent = `${QUARTERS[bi]} avg · Baseline (Pink Sheet Apr-26)`;
+    setChange('brentChange', data.brent[bi] - data.brent[bi - 1], 'upBad', `vs ${QUARTERS[bi - 1]}`, '$', 1);
+  }
+  setDot('brentDot', sourceStatus.brent);
+}
+
+/* dir: 'upBad' → increase shown red (CPI, repo, USD/INR, Brent)
+        'upGood'→ increase shown green (GDP) */
+function setChange(elId, delta, dir, refLabel, unit, decimals) {
+  const el = document.getElementById(elId);
+  const sign = delta > 0 ? '+' : delta < 0 ? '−' : '±';
+  const mag = Math.abs(delta).toFixed(decimals);
+  const num = unit === '%' ? `${sign}${mag} pp` : `${sign}${unit}${mag}`;   // change in a rate = percentage points
+  el.textContent = `${num} ${refLabel}`;
+  el.className = 'stat-card-change';
+  const upClass = dir === 'upGood' ? 'change-down' : 'change-up';     // green vs red
+  const downClass = dir === 'upGood' ? 'change-up' : 'change-down';
+  el.classList.add(delta > 0 ? upClass : delta < 0 ? downClass : 'change-flat');
+}
+
+function setDot(elId, status) {
+  const el = document.getElementById(elId);
+  const p = PROV[status] || PROV.baseline;
+  el.className = 'stat-card-srcdot ' + p.dot;
+  el.textContent = p.label;
+}
+
+// ─── FOOTER SOURCE BADGES ─────────────────────────────────────────────────────
+function updateSourceBadges() {
+  const st = sourceStatus;
+  setSrcStatus('repoSrcStatus', st.repo, st.repo === 'baseline'
+    ? `◆ Card: baseline (current rate not retrieved) · chart: manual quarter-end levels verified ${DATA_VINTAGE}`
+    : `${PROV[st.repo].label} · card: RBI current rate · ${provText('RBI:POLICY_RATES')} · chart: manual, verified ${DATA_VINTAGE}`);
+  const xc = (key) => {
+    const c = crossCheck[key];
+    if (!c) return ' · World Bank cross-check unavailable';
+    const flag = Math.abs(c.wb - c.baseAvg) > 0.8 ? '⚠ divergence — review basis' : '✓ consistent';
+    return ` · WB ${c.year} (${c.basis}) ${c.wb.toFixed(2)}% vs chart ${c.baseAvg.toFixed(2)}% ${flag} (cross-check only)`;
+  };
+  setSrcStatus('cpiSrcStatus', st.cpi, st.cpi === 'baseline'
+    ? `◆ Baseline only — MoSPI CPI not retrieved${xc('cpi')}`
+    : `${PROV[st.cpi].label} · ${liveMeta.cpiQuartersOfficial}/${QUARTERS.length} quarters official · ${provText('MOSPI:CPI_2024')}${xc('cpi')}`);
+  setSrcStatus('gdpSrcStatus', st.gdp, st.gdp === 'baseline'
+    ? `◆ Baseline only — MoSPI GDP not retrieved${xc('gdp')}`
+    : `${PROV[st.gdp].label} · ${liveMeta.gdpQuartersOfficial}/${QUARTERS.length} quarters official · ${provText('MOSPI:GDP_2022_23')}${xc('gdp')}`);
+  setSrcStatus('inrSrcStatus', st.usdinr, st.usdinr === 'baseline'
+    ? '◆ Baseline only — no ECB reference rates saved or fetched'
+    : `${PROV[st.usdinr].label} · ECB reference to ${liveMeta.inrSpotDate} · ` + (RUN.fxDirect ? 'fetched by browser this load' : provText('ECB:FX')));
+  setSrcStatus('brentSrcStatus', st.brent, st.brent === 'baseline'
+    ? '◆ Baseline (Pink Sheet Apr-26, verified through Q1 2026) · no FRED data saved'
+    : `${PROV[st.brent].label} · ${liveMeta.brentQuartersLive}/${QUARTERS.length} quarters from FRED MCOILBRENTEU · latest ${liveMeta.brentLatestLabel} · ${provText('FRED:MCOILBRENTEU')}`);
+}
+
+function setSrcStatus(elId, status, text) {
+  const el = document.getElementById(elId);
+  el.className = 'source-status ' + (PROV[status] || PROV.baseline).src;
+  el.textContent = text;
+}
+
+// ─── SOURCE & REFRESH STATUS TABLE ────────────────────────────────────────────
+function renderStatusTable() {
+  const root = window.MACRO_SNAPSHOT && window.MACRO_SNAPSHOT.sources;
+  const order = ['RBI', 'MOSPI', 'ECB', 'FRED', 'WB'];
+  const ids = root ? Object.keys(root).sort((a, b) => (order.indexOf(a.split(':')[0]) - order.indexOf(b.split(':')[0])) || a.localeCompare(b)) : [];
+  const rows = ids.map(id => {
+    const raw = root[id], x = entryState(id), res = RUN.results[id];
+    const obs = x.st ? x.st.last[0] : null;
+    const obsTxt = !obs ? '–' : /Annual/.test(raw.frequency || '') ? obs.slice(0, 4) : /Monthly/.test(raw.frequency || '') ? fmtMonth(obs)
+                 : /Quarterly/.test(raw.frequency || '') ? `${qLabelOf(obs)} (from ${fmtDay(obs)})` : fmtDay(obs);
+    const thisLoad = RUN.mode !== 'server' ? `not checked (${RUN.mode === 'file' ? 'opened as file' : 'no server'})`
+      : !res ? '–'
+      : res.action === 'checked' ? `fetched now · ${res.new_obs ? res.new_obs + ' new obs' : 'no newer observation'}${res.revised ? ' · ' + res.revised + ' revised' : ''}`
+      : res.action === 'reused' ? `reused · ${res.reason}`
+      : res.action === 'pending' ? `still checking · ${res.reason}`
+      : `<span class="err">failed: ${escHtml(res.error.detail)}${res.kept_previous ? ' (saved data kept)' : ''}</span>`;
+    const lastErr = raw.last_error ? `<div class="err">last error: ${escHtml(raw.last_error.detail)}</div>` : '';
+    return `<tr><td><a href="${escHtml(raw.source_url || '#')}" target="_blank" rel="noopener">${escHtml(id)}</a><div class="muted">${escHtml(raw.provider || '')} · ${escHtml(raw.title || '')}</div></td>
+      <td>${obsTxt}${x.overdue ? `<div class="err">newer release overdue since ${fmtDay(x.overdueAfter)}</div>` : x.overdueAfter ? `<div class="muted">next expected by ${fmtDay(x.overdueAfter)}</div>` : ''}</td>
+      <td>${fmtIST(raw.last_success_at)}<div class="muted">attempt ${fmtIST(raw.last_attempt_at)}</div><div class="muted">newest obs arrived ${fmtIST(raw.last_new_obs_at)}</div></td>
+      <td>${thisLoad}${lastErr}</td>
+      <td>${escHtml(raw.units || '')}<div class="muted">${escHtml(raw.transform || '')}</div></td>
+      <td><span class="source-status ${PROV[x.state].src}">${PROV[x.state].label}</span></td></tr>`;
+  });
+  const lastRel = US_RELEASES.map(r => r.date).sort().pop();
+  rows.push(`<tr><td>Repo quarter-end history<div class="muted">FALLBACK.repo (MPC decisions)</div></td><td>${QUARTERS[lastNonNull(padTo(FALLBACK.repo, QUARTERS.length))]}</td><td>verified ${DATA_VINTAGE}</td><td>maintained by hand</td><td>Percent<div class="muted">later quarters left blank until decisions are verified</div></td><td><span class="source-status manual-src">MANUAL</span></td></tr>`);
+  rows.push(`<tr><td>US consensus &amp; surprises<div class="muted">US_RELEASES / US_UPCOMING</div></td><td>last entry ${lastRel || '–'}</td><td>verified ${US_VINTAGE}</td><td>maintained by hand</td><td>pp / K jobs<div class="muted">surprise = actual − consensus; excluded from scores when it does not cover the latest print</div></td><td><span class="source-status manual-src">MANUAL</span></td></tr>`);
+  rows.push(`<tr><td>ForexFactory calendar<div class="muted">consensus feed</div></td><td>–</td><td>–</td><td>not automated: refuses automated clients (403) and rate-limits; not bypassed</td><td>–</td><td><span class="source-status unavail-src">UNAVAILABLE</span></td></tr>`);
+  document.getElementById('statusTable').innerHTML =
+    '<thead><tr><th>Source</th><th>Newest observation</th><th>Last success</th><th>This page load</th><th>Units &amp; transform</th><th>State</th></tr></thead><tbody>' + rows.join('') + '</tbody>';
+  const mode = { server: RUN.ok ? `checked ${fmtIST(RUN.at)}${RUN.forced ? ' (manual refresh)' : ''} in ${RUN.durationMs} ms` : 'server refresh failed',
+                 file: 'opened as a file: saved data, no checks', 'http-no-server': 'no dashboard server: saved data, no checks' }[RUN.mode] || '';
+  document.getElementById('statusPanelSum').textContent = `· ${ids.length} automated sources · ${mode}`;
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+loadAllData();
+</script>
+</body>
+</html>

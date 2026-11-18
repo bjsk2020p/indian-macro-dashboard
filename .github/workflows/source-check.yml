@@ -1,0 +1,39 @@
+# Phase 1 test: can GitHub's servers reach every data source?
+# Manual trigger only. Never commits, never deploys (read-only token).
+name: Source check (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: source-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run refresh_data.py (all sources)
+        id: refresh
+        # Exit code 1 means at least one source failed; the next step reports which.
+        continue-on-error: true
+        run: python refresh_data.py
+
+      - name: Per-source results
+        run: python ci_report.py
+
+      - name: Note
+        if: steps.refresh.outcome == 'failure'
+        run: echo "::warning::At least one source failed from GitHub's servers - see the table above and the run summary."

@@ -1,0 +1,6 @@
+# Normalise text files in the repo; scripts that cmd.exe runs keep CRLF.
+* text=auto
+*.cmd text eol=crlf
+*.bat text eol=crlf
+# Release snapshots are immutable: store byte-for-byte so CHANGELOG SHA-256 hashes always match.
+Releases/** -text

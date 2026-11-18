@@ -1,0 +1,27 @@
+# Secrets / credentials
+.env
+.env.*
+*.pem
+*.key
+credentials*.json
+secrets*
+
+# Caches, logs, tool output
+.playwright-mcp/
+__pycache__/
+node_modules/
+*.log
+.cache/
+
+# OS / editor noise
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Note: archive/ and Releases/ are intentionally tracked so old dashboards stay recoverable.
+# .remember/ ignores itself via its own .gitignore.
+
+# Dashboard updater runtime files (data/macro_snapshot.js itself stays tracked)
+data/*.log.old
+data/*.tmp
+data/*.corrupt-*.js
