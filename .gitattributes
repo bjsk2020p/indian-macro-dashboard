@@ -2,5 +2,7 @@
 * text=auto
 *.cmd text eol=crlf
 *.bat text eol=crlf
+# Keep the active page byte-identical on Windows and the Pages build runner.
+/india_macro_dashboard_v5.html text eol=lf
 # Release snapshots are immutable: store byte-for-byte so CHANGELOG SHA-256 hashes always match.
 Releases/** -text

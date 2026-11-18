@@ -357,110 +357,76 @@
 
   .timeline-label { font-weight: 600; color: var(--text-primary); }
 
-  /* FOOTER */
+  /* Dashboard guide and source directory */
   .footer {
-    background: #1e293b;
-    padding: 28px 32px;
-    margin-bottom: 24px;
-    border-radius: 16px;
-    opacity: 0;
-    animation: fadeUp 0.4s ease 0.3s forwards;
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 24px; color: #1f2937;
   }
-
-  .footer-title {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: #64748b;
-    margin-bottom: 20px;
+  #macroGuide { font-size: 13px; line-height: 1.5; }
+  #macroGuide [role="tablist"] { display: flex; gap: 4px; border-bottom: 1px solid #e5e7eb; margin-bottom: 14px; }
+  #macroGuide [role="tab"] {
+    font: 700 11.5px 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .04em;
+    color: #4b5563; background: transparent; border: 0; border-bottom: 3px solid transparent;
+    border-radius: 6px 6px 0 0; padding: 10px 14px; min-height: 44px; cursor: pointer;
   }
-
-  .sources-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 16px;
+  #macroGuide [role="tab"]:hover { background: #f3f4f6; color: #111827; }
+  #macroGuide [role="tab"][aria-selected="true"] { color: #9a3412; border-color: #f7931a; background: #fff7ed; }
+  #macroGuide :focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
+  #macroGuide h2 { font-size: 16px; color: #0f1117; }
+  #macroGuide h3, #macroGuide caption { font-size: 14px; font-weight: 700; color: #0f1117; }
+  #macroGuide .guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 245px), 1fr)); gap: 12px; }
+  #macroGuide .guide-grid article, #macroGuide .guide-scoring {
+    background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px;
   }
-
-  .source-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px;
-    padding: 16px 18px;
+  #macroGuide p, #macroGuide ul { margin-top: 6px; }
+  #macroGuide .parameter-group, #macroGuide .guide-scoring { margin-top: 18px; }
+  #macroGuide .parameter {
+    margin-top: 8px; padding: 10px 14px; border-left: 3px solid #f7931a;
+    background: #fffaf3; border-radius: 0 8px 8px 0;
   }
-
-  .source-indicator {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
-
-  .source-dot { width: 8px; height: 8px; border-radius: 50%; }
-
-  .source-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: #f1f5f9;
-  }
-
-  .source-meta { font-size: 11px; color: #64748b; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; line-height: 1.5; }
-
-  .source-url {
-    font-size: 11px;
-    color: #94a3b8;
-    word-break: break-all;
-    text-decoration: none;
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .source-url:hover { color: var(--accent); text-decoration: underline; }
+  #macroGuide .parameter h4 { color: #0f1117; font-size: 14px; margin-bottom: 5px; }
+  #macroGuide .parameter dl { display: grid; grid-template-columns: 132px minmax(0,1fr); gap: 4px 12px; }
+  #macroGuide dt { font-weight: 600; color: #4b5563; }
+  #macroGuide dd { margin: 0; }
+  #macroGuide .guide-scoring dt { margin-top: 12px; }
+  #macroGuide .source-status { margin: 8px 0 0; overflow-wrap: anywhere; }
+  #macroGuide table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  #macroGuide caption { text-align: left; padding-bottom: 4px; }
+  #macroGuide th, #macroGuide td { text-align: left; padding: 6px; border-bottom: 1px solid #d1d5db; }
+  #macroGuide td { font-family: 'JetBrains Mono', monospace; }
+  #macroGuide td small { display: block; color: #4b5563; }
+  #macroGuide ul { list-style: none; }
+  #macroGuide li + li { margin-top: 7px; }
+  #macroGuide a, .status-table a { color: #1d4ed8; text-underline-offset: 3px; }
+  #macroGuide a:hover { color: #1e3a8a; }
 
   .source-status {
-    margin-top: 10px;
-    font-size: 10px;
-    font-family: 'JetBrains Mono', monospace;
-    padding: 3px 8px;
-    border-radius: 4px;
-    display: inline-block;
-    line-height: 1.5;
+    display: inline-block; padding: 3px 8px; border-radius: 4px; font: 10px/1.5 'JetBrains Mono', monospace;
+    background: #f1f5f9; color: #374151;
   }
-  .source-status.live-src { background: rgba(22,163,74,0.2); color: #4ade80; }
-  .source-status.checked-src { background: rgba(59,130,246,0.18); color: #93c5fd; }
-  .source-status.cached-src { background: rgba(234,179,8,0.15); color: #fbbf24; }
-  .source-status.snapshot-src { background: rgba(99,102,241,0.22); color: #c7d2fe; }
-  .source-status.stale-src { background: rgba(249,115,22,0.18); color: #fdba74; }
-  .source-status.manual-src { background: rgba(148,163,184,0.18); color: #e2e8f0; }
-  .source-status.unavail-src { background: rgba(148,163,184,0.12); color: #cbd5e1; }
-  .source-meta a { color: #93c5fd; }
+  .source-status.live-src { background: #dcfce7; color: #166534; }
+  .source-status.checked-src { background: #dbeafe; color: #1e40af; }
+  .source-status.cached-src { background: #fef3c7; color: #854d0e; }
+  .source-status.snapshot-src { background: #e0e7ff; color: #3730a3; }
+  .source-status.stale-src { background: #ffedd5; color: #9a3412; }
   /* run-mode notice (file:// / no server / refresh errors) */
   .mode-notice { margin: 0 0 18px; padding: 12px 16px; border-radius: 10px; font-size: 13px; line-height: 1.5;
                  background: #fff7ed; color: #7c2d12; border: 1px solid #fdba74; }
   .mode-notice.info { background: #eff6ff; color: #1e3a8a; border-color: #93c5fd; }
   .mode-notice code { background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; }
   .chart-unavailable { padding: 18px; font-size: 12.5px; color: #7c2d12; background: #fff7ed; border-radius: 8px; }
-  /* source & refresh status table (dark footer) */
-  .status-panel { margin-top: 20px; }
-  .status-panel > summary { cursor: pointer; color: #f1f5f9; font-size: 13px; font-weight: 700; padding: 6px 0; }
-  .status-panel > summary:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; border-radius: 4px; }
-  .status-panel-sum { font-weight: 400; color: #cbd5e1; font-family: "JetBrains Mono", monospace; font-size: 11px; margin-left: 8px; }
+  /* Source & refresh status */
+  .status-panel { margin-top: 16px; padding-top: 10px; border-top: 1px solid #e5e7eb; }
+  .status-panel > summary { cursor: pointer; color: #111827; font-size: 13px; font-weight: 700; padding: 6px 0; }
+  .status-panel > summary:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; border-radius: 4px; }
+  .status-panel-sum { font: 11px 'JetBrains Mono', monospace; color: #4b5563; margin-left: 8px; }
   .status-table-wrap { overflow-x: auto; margin-top: 8px; }
-  .status-table { width: 100%; border-collapse: collapse; font-family: "JetBrains Mono", monospace; font-size: 10.5px; color: #e2e8f0; }
-  .status-table th { text-align: left; color: #cbd5e1; font-weight: 600; padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.15); white-space: nowrap; }
-  .status-table td { padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.07); vertical-align: top; line-height: 1.45; }
-  .status-table a { color: #93c5fd; }
-  .status-table .err { color: #fca5a5; }
-  .status-table .muted { color: #cbd5e1; }
-
-  .footer-note {
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    font-size: 11px;
-    color: #64748b;
-    line-height: 1.7;
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .footer-note strong { color: #94a3b8; font-weight: 500; }
+  .status-table { width: 100%; border-collapse: collapse; font: 10.5px 'JetBrains Mono', monospace; }
+  .status-table th, .status-table td { padding: 6px 8px; border-bottom: 1px solid #e5e7eb; }
+  .status-table th { text-align: left; white-space: nowrap; background: #f3f4f6; }
+  .status-table td { vertical-align: top; line-height: 1.45; }
+  .status-table .err { color: #991b1b; }
+  .status-table .muted { color: #4b5563; }
 
   /* ════════ US MACRO IMPACT SECTION ════════ */
   .us-section {
@@ -614,12 +580,6 @@
   .iv-tail { color:#16a34a } .iv-head { color:#dc2626 } .iv-neut { color:#6b6460 }
   .us-impact-reason { font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--text-muted); line-height:1.5; }
 
-  .us-foot {
-    font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-muted);
-    line-height:1.7; padding-top:12px; border-top:1px solid var(--border);
-  }
-  .us-foot strong { color:var(--text-secondary); font-weight:500; }
-  .us-foot a { color:var(--text-secondary); }
   @media (max-width:768px){ .us-section { padding:18px 14px; } .us-card-label { padding-right:0; } }
 
   @media (max-width: 768px) {
@@ -643,7 +603,7 @@
     .refresh-btn { min-height: 44px; padding: 10px 16px; margin-left: auto; }
     .main { padding: 12px; }
     .mode-notice { font-size: 12.5px; padding: 10px 12px; overflow-wrap: anywhere; }
-    .stat-cards, .us-cards, .us-scores, .us-trends-grid, .us-impact-grid, .sources-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .stat-cards, .us-cards, .us-scores, .us-trends-grid, .us-impact-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
     .stat-card { padding: 16px 16px; }
     .stat-card-label { padding-right: 76px; }
     .timeline-event { flex: 1 1 100%; }
@@ -662,12 +622,19 @@
     .status-panel > summary { min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
     .status-panel-sum { margin-left: 0; }
     .status-table-wrap { max-height: 60vh; overflow: auto; -webkit-overflow-scrolling: touch;
-                         border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; }
+                         border: 1px solid #e5e7eb; border-radius: 8px; }
     .status-table { min-width: 1000px; }
     .status-table td { min-width: 150px; }
-    .status-table th { position: sticky; top: 0; background: #1e293b; }
-    .source-url { display: inline-block; min-height: 44px; padding: 12px 0; }
-    .status-table a, .source-meta a { display: inline-block; padding: 4px 0; }
+    .status-table th { position: sticky; top: 0; }
+    #macroGuide [role="tablist"] { display: grid; grid-template-columns: .8fr 1.1fr 1.1fr; }
+    #macroGuide [role="tab"] { padding: 6px 4px; line-height: 1.25; }
+    #macroGuide .parameter dl { grid-template-columns: 1fr; gap: 0; }
+    #macroGuide .parameter dd + dt { margin-top: 6px; }
+    #macroGuide .parameter, #macroGuide .guide-grid article, #macroGuide .guide-scoring { padding: 12px; }
+    #macroGuide table { font-size: 12px; }
+    #macroGuide th, #macroGuide td { padding: 5px 3px; }
+    #macroGuide li a { display: flex; align-items: center; min-height: 44px; }
+    .status-table a { display: inline-block; padding: 4px 0; }
   }
   /* </phone-layout> */
 </style>
@@ -934,7 +901,7 @@
       <div class="us-trends-grid">
         <div class="us-trend-card" style="--tc:#6b6460; grid-column:1 / -1">
           <span class="us-trend-tag" id="usTrendInflTag">BASELINE</span>
-          <div class="us-trend-label">Inflation &amp; Real Rate · YoY % (CPI · Core PCE · Real Yield 10Y)</div>
+          <div class="us-trend-label">Inflation (YoY %) &amp; 10Y Real Yield (%)</div>
           <div class="us-surprise-legend" style="margin:2px 0 6px">
             <span><span class="sw" style="background:#dc2626"></span>US CPI</span>
             <span><span class="sw" style="background:#9333ea"></span>Core PCE</span>
@@ -987,7 +954,7 @@
       <div class="us-recent-head">
         <div>
           <div class="us-recent-title">Surprise Tracker · Actual vs Forecast (Bullet)</div>
-          <div class="us-recent-sub">Grey tick = consensus forecast · filled bar = actual print · hollow/dashed = upcoming (auto-fills on release) · true time axis (spacing = calendar days) · + = hawkish</div>
+          <div class="us-recent-sub">Grey tick = consensus forecast · filled bar = actual print · hollow/dashed = upcoming consensus · true time axis (spacing = calendar days) · + = hawkish</div>
         </div>
       </div>
       <div class="us-surprise-legend">
@@ -1017,90 +984,213 @@
       <div class="us-trend-note" id="usSurpriseNote">–</div>
     </div>
 
-    <div class="us-foot" id="usFoot">
-      <strong>Sources:</strong> CPI = FRED CPIAUCNS (NSA, BLS basis) · Core PCE = FRED PCEPILFE · NFP = FRED PAYEMS month-over-month change (reflects revisions) · Real Yield = FRED DFII10 (H.15) · DXY = computed live from ECB reference rates (Frankfurter, no key) via the official ICE weights — typically within ±0.3 of ICE futures DXY · Consensus = manual log (<code>US_RELEASES</code> / <code>US_UPCOMING</code>); no automated consensus feed is used.<br>
-      <strong>Fetch path:</strong> the local server (<code>Open_Indian_Macro_Dashboard.cmd</code>) fetches FRED server-side on every page open/reload, within each series' reuse window, and saves validated data to <code>data/macro_snapshot.js</code>. No public CORS proxies are used. DXY is an <em>estimate</em> from ECB reference rates with the ICE weights (50.14348112 × EURUSD^−0.576 × USDJPY^0.136 × GBPUSD^−0.119 × USDCAD^0.091 × USDSEK^0.042 × USDCHF^0.036), not the traded index. Consensus forecasts are <strong>manual</strong> (<code>US_RELEASES</code> / <code>US_UPCOMING</code>): the ForexFactory feed refuses automated clients and is not bypassed. Baseline values verified <span id="usVintage">–</span>; per the no-interpolation rule, deltas needing a daily series show n/a in BASELINE mode rather than estimated values.<br>
-      <strong>Impact Score:</strong> 0–100 (50 = neutral), weighted on Real-Yield trend &amp; level, DXY 30-day trend, latest CPI surprise and NFP surprise. Weights are in <code>US_SCORE_WEIGHTS</code> in the source. Known blind spot: the model does not capture safe-haven bids (e.g. war escalation can lift gold even with rising real yields).<br>
-      <strong>Surprise Tracker:</strong> two bullet panels — filled bar = Actual print, grey tick = Forecast (consensus), gap = surprise; inflation (CPI/Core CPI/Core PCE, pp) on top, NFP (K jobs) below. Upcoming releases from <code>US_UPCOMING</code> (+ live FF) render as dashed hollow bars that auto-fill once <code>US_RELEASES</code> gains the dated actual. True time axis (<code>type:'time'</code> via date-fns adapter) so horizontal spacing = real calendar days; same-day prints are nudged ±days to de-collide. Sign convention: + = hawkish. Blind spot: a "0.0pp" surprise can still move markets via positioning or internals (core MoM, revisions) — revisions (e.g. NFP Apr 115K→179K) are a separate channel not shown as a bar.<br>
-      <strong>Impact Tracker:</strong> maps the recent surprise sequence (last 3 inflation prints + last NFP + DXY trend) to Gold ETFs, Silver ETFs, Nifty Next 50 and Small Caps as headwind/tailwind. Rule-based and directional only — not advice; safe-haven bids and FII positioning can override. Small caps are flagged most DXY/liquidity-sensitive.<br>
-      <strong>Monthly Trends:</strong> CPI + Core PCE + Real Yield share one % chart (gaps left null, no interpolation); NFP (K jobs) and DXY (index) kept separate as their scales don't mix. Tags use the same states as the cards (LATEST / CACHED / SNAPSHOT / STALE / BASELINE). YoY is matched by calendar month, so a month FRED lacks (e.g. Oct-2025 CPI, never published) yields no point rather than a 13-month change.
-    </div>
   </div>
 
-  <!-- DATA SOURCES FOOTER -->
   <div class="footer">
-    <div class="footer-title">▸ Data Sources, Provenance &amp; Methodology</div>
-    <div class="sources-grid">
-
-      <div class="source-card">
-        <div class="source-indicator">
-          <div class="source-dot" style="background:#1e40af"></div>
-          <div class="source-name">RBI Repo Rate</div>
-        </div>
-        <div class="source-meta">Card: current Policy Repo Rate read from the RBI home page "Current Rates" block by the local server (validated: SDF &lt; repo &lt; MSF). The page does not state the decision's effective date, so none is shown.</div>
-        <div class="source-meta">Chart: quarter-end levels from verified MPC decisions, maintained manually in <code>FALLBACK.repo</code>. Quarters after the last verified decision are left blank, never estimated.</div>
-        <a class="source-url" href="https://www.rbi.org.in/" target="_blank">rbi.org.in · Current Rates</a>
-        <div class="source-status cached-src" id="repoSrcStatus">◆ Baseline</div>
+    <section id="macroGuide" aria-label="Dashboard guide">
+      <div role="tablist" aria-label="Dashboard guide">
+        <button type="button" role="tab" id="guideOverviewTab" aria-controls="guideOverview" aria-selected="true">Overview</button>
+        <button type="button" role="tab" id="guideHelpTab" aria-controls="guideHelp" aria-selected="false" tabindex="-1">Help &amp; Parameters</button>
+        <button type="button" role="tab" id="guideRefsTab" aria-controls="guideRefs" aria-selected="false" tabindex="-1">References &amp; Links</button>
       </div>
 
-      <div class="source-card">
-        <div class="source-indicator">
-          <div class="source-dot" style="background:#dc2626"></div>
-          <div class="source-name">CPI Inflation (YoY)</div>
+      <div role="tabpanel" id="guideOverview" aria-labelledby="guideOverviewTab" tabindex="0">
+        <div class="guide-grid">
+          <article>
+            <h3>What does this dashboard track?</h3>
+            <p>The RBI repo rate, Indian CPI inflation and real GDP growth track borrowing costs, consumer prices and output. USD/INR and Brent show how the rupee and oil prices move alongside them.</p>
+            <p>US inflation and jobs releases, real yields and the dollar add context for gold, silver and Indian equities.</p>
+          </article>
+          <article>
+            <h3>How do I read the cards and charts?</h3>
+            <p>The Indian CPI card shows the latest monthly year-on-year (YoY) reading. The quarterly chart averages three monthly YoY readings. For example, if April, May and June were 3%, 4% and 5%, the June card would show 5% and Q2 would show 4%.</p>
+            <p>A blank means the series has no usable value for that period. Check the date on the card and the <strong>Newest observation</strong> column in Source &amp; refresh status below.</p>
+          </article>
+          <article>
+            <h3>What does an impact score mean?</h3>
+            <p>On the 0–100 scale, 50 is neutral. Below 50, the inputs suggest a headwind (pressure on the asset). Above 50, they suggest a tailwind (support). A score needs at least <strong data-score-min></strong> of five inputs.</p>
+            <p>The separate Impact Tracker reads recent surprises. It is withheld unless the manual CPI and payrolls entries each match the month of their latest published FRED observation.</p>
+          </article>
         </div>
-        <div class="source-meta">Series: MoSPI CPI (General), All-India, Combined (rural+urban). Card = latest monthly YoY as published. Chart = mean of the quarter's 3 monthly YoY prints (complete quarters only).</div>
-        <div class="source-meta">Base break: Jan 2021–Dec 2025 from base 2012; Jan 2026 onward from base 2024 (MoSPI's published YoY). Growth rates are shown, not spliced index levels.</div>
-        <div class="source-meta">Cross-check: World Bank FP.CPI.TOTL.ZG annual (calendar year) vs the chart's calendar-year average. Never replaces the chart.</div>
-        <a class="source-url" href="https://esankhyiki.mospi.gov.in/macroindicators?product=cpi" target="_blank">esankhyiki.mospi.gov.in · CPI</a>
-        <div class="source-status cached-src" id="cpiSrcStatus">◆ Baseline</div>
       </div>
 
-      <div class="source-card">
-        <div class="source-indicator">
-          <div class="source-dot" style="background:#16a34a"></div>
-          <div class="source-name">GDP Growth (YoY)</div>
-        </div>
-        <div class="source-meta">Series: MoSPI National Accounts, quarterly GDP at constant prices (real). YoY = level ÷ same quarter a year earlier − 1. Fiscal Q1 (Apr–Jun) is plotted as calendar Q2.</div>
-        <div class="source-meta">Base: 2022-23 series where both quarters exist (Apr–Jun 2023 onward); earlier quarters from the superseded 2011-12 series. Latest estimates as revised by MoSPI, not first prints.</div>
-        <div class="source-meta">Cross-check: World Bank NY.GDP.MKTP.KD.ZG (India fiscal year) vs the chart's Apr–Mar average. Never replaces the chart.</div>
-        <a class="source-url" href="https://esankhyiki.mospi.gov.in/macroindicators?product=nas" target="_blank">esankhyiki.mospi.gov.in · National Accounts</a>
-        <div class="source-status cached-src" id="gdpSrcStatus">◆ Baseline</div>
+      <div role="tabpanel" id="guideHelp" aria-labelledby="guideHelpTab" tabindex="0" hidden>
+        <h2>Help &amp; Parameters</h2>
+        <section class="parameter-group">
+          <h3>Indian indicators</h3>
+          <p>These five readings give context for Indian businesses and households. Their moves carry no weight in the US asset scores.</p>
+          <article class="parameter">
+            <h4>RBI repo rate</h4>
+            <dl>
+              <dt>What it is</dt><dd>The RBI’s policy lending rate (%). The card reads the current level. Its date records when RBI’s Current Rates page was checked. The quarterly chart uses manually verified quarter-end MPC decisions and stops at the last verified quarter.</dd>
+              <dt>Bullish signal</dt><dd>A rate cut can lower loan costs as banks pass it on, supporting demand for homes and vehicles.</dd>
+              <dt>Bearish signal</dt><dd>A rate hike can raise instalments on floating-rate loans and weigh on interest-sensitive businesses.</dd>
+            </dl>
+            <span class="source-status" id="repoSrcStatus"></span>
+          </article>
+          <article class="parameter">
+            <h4>Indian CPI inflation</h4>
+            <dl>
+              <dt>What it is</dt><dd>MoSPI’s monthly YoY change (%) in the All-India Combined General consumer price index. The chart averages a full quarter’s three readings. It uses published growth rates across the switch from base 2012 to base 2024.</dd>
+              <dt>Bullish signal</dt><dd>Falling inflation means prices are rising more slowly. If incomes hold up, households have more room for discretionary spending.</dd>
+              <dt>Bearish signal</dt><dd>Rising inflation can squeeze household budgets and weigh on retailers dependent on discretionary purchases.</dd>
+            </dl>
+            <span class="source-status" id="cpiSrcStatus"></span>
+          </article>
+          <article class="parameter">
+            <h4>Real GDP growth</h4>
+            <dl>
+              <dt>What it is</dt><dd>Quarterly YoY growth (%) equals 100 × (constant-price GDP ÷ GDP in the same fiscal quarter a year earlier − 1). April–June is India’s fiscal Q1 and appears as calendar Q2. Both levels use base 2022–23 when available, otherwise 2011–12. MoSPI revisions flow through.</dd>
+              <dt>Bullish signal</dt><dd>A pickup from 5% to 7% YoY means output is expanding faster. If stronger domestic demand drives the pickup, cyclical businesses can see higher sales.</dd>
+              <dt>Bearish signal</dt><dd>A falling growth rate signals weaker momentum and can weigh on cyclical earnings. A fall from 7% to 5% still means output grew.</dd>
+            </dl>
+            <span class="source-status" id="gdpSrcStatus"></span>
+          </article>
+          <article class="parameter">
+            <h4>USD/INR</h4>
+            <dl>
+              <dt>What it is</dt><dd>Rupees per US dollar at the ECB business-day reference rate, via Frankfurter. A rise means a weaker rupee. The monthly chart takes the last reference reading available in each month. Completed quarters use the last available rate on or before quarter end.</dd>
+              <dt>Bullish signal</dt><dd>A falling USD/INR means a stronger rupee and cheaper dollar-priced inputs for importers. A rising pair can help exporters earning unhedged dollar revenue.</dd>
+              <dt>Bearish signal</dt><dd>A rising USD/INR means a weaker rupee and higher costs for importers. A falling pair reduces the rupee value of unhedged dollar export receipts.</dd>
+            </dl>
+            <span class="source-status" id="inrSrcStatus"></span>
+          </article>
+          <article class="parameter">
+            <h4>Brent crude</h4>
+            <dl>
+              <dt>What it is</dt><dd>The card shows the monthly average of daily Europe Brent spot prices in US dollars per barrel. A quarterly value averages three monthly observations, with a historical baseline where available.</dd>
+              <dt>Bullish signal</dt><dd>A falling monthly average can ease fuel costs for airlines and freight operators. Rising Brent can benefit oil producers.</dd>
+              <dt>Bearish signal</dt><dd>A rising monthly average can squeeze fuel users’ margins and raise India’s oil import bill. Falling Brent can reduce producers’ revenue per barrel.</dd>
+            </dl>
+            <span class="source-status" id="brentSrcStatus"></span>
+          </article>
+        </section>
+        <section class="parameter-group">
+          <h3>US spillover</h3>
+          <p>For inflation and jobs releases, compare the actual with the forecast. For real yields and the dollar, compare observations over time.</p>
+          <article class="parameter">
+            <h4>US CPI</h4>
+            <dl>
+              <dt>What it is</dt><dd>Monthly headline consumer inflation (% YoY). The dashboard compares the all-items, unadjusted CPI-U index with the same calendar month a year earlier. A missing comparison month leaves the YoY reading unavailable.</dd>
+              <dt>Bullish signal</dt><dd>Headline CPI below consensus adds points to gold, silver and Indian equities when the release is eligible.</dd>
+              <dt>Bearish signal</dt><dd>Headline CPI above consensus subtracts points from all three, even if inflation fell from the previous month. An in-line print contributes zero.</dd>
+            </dl>
+          </article>
+          <article class="parameter">
+            <h4>US core CPI</h4>
+            <dl>
+              <dt>What it is</dt><dd>Monthly US consumer inflation excluding food and energy (% YoY). The manual release log compares the actual with consensus. Core CPI contributes to the surprise sequence.</dd>
+              <dt>Bullish signal</dt><dd>In Recent Changes, a print more than 0.05 pp below consensus gets a bullish label for gold, silver and Indian equities.</dd>
+              <dt>Bearish signal</dt><dd>More than 0.05 pp above consensus gets a bearish label for all three. Smaller gaps are neutral there. Only headline CPI feeds the numerical CPI score.</dd>
+            </dl>
+          </article>
+          <article class="parameter">
+            <h4>Core PCE</h4>
+            <dl>
+              <dt>What it is</dt><dd>Monthly US consumer spending price index excluding food and energy. The card shows the percentage change from the same month last year. For both inflation cards, a change in the YoY rate is measured in percentage points (pp).</dd>
+              <dt>Bullish signal</dt><dd>A reading more than 0.05 pp below consensus gets a bullish release label for gold, silver and Indian equities.</dd>
+              <dt>Bearish signal</dt><dd>A reading more than 0.05 pp above consensus gets a bearish release label for all three. Core PCE also informs the surprise sequence and carries no separate asset-score weight.</dd>
+            </dl>
+          </article>
+          <article class="parameter">
+            <h4>Nonfarm payrolls (NFP)</h4>
+            <dl>
+              <dt>What it is</dt><dd>Monthly change in US nonfarm jobs, in thousands. Subtract the previous month’s seasonally adjusted payroll level from this month’s. Only consecutive months count. The card uses revised levels, so its gain can differ from the release-day figure.</dd>
+              <dt>Bullish signal</dt><dd>In the asset scores, fewer jobs than forecast supports gold and silver. For Indian equities, a beat of up to 50K jobs adds points.</dd>
+              <dt>Bearish signal</dt><dd>More jobs than forecast weighs on gold and silver. For Indian equities, either a miss or a beat above 50K subtracts points. Matching consensus contributes zero.</dd>
+            </dl>
+          </article>
+          <article class="parameter">
+            <h4>US real yield</h4>
+            <dl>
+              <dt>What it is</dt><dd>Daily yield (%) on a 10-year inflation-protected US Treasury. Weekly and monthly moves compare with the last observation on or before 7 and 30 days earlier. A rise of 0.10 pp equals 10 basis points (bp).</dd>
+              <dt>Bullish signal</dt><dd>A fall over 30 days adds points to all three assets. A level below the pivot shown in the weights table adds points separately. Lower real yields reduce the cost of holding gold.</dd>
+              <dt>Bearish signal</dt><dd>A rise over 30 days subtracts points. A level above the pivot also subtracts points, so a high but falling yield can send opposing signals.</dd>
+            </dl>
+          </article>
+          <article class="parameter">
+            <h4>Dollar Index (DXY)</h4>
+            <dl>
+              <dt>What it is</dt><dd>A daily estimate of the dollar’s strength, in index points. The ICE currency weights are applied to six ECB reference exchange rates. Weekly and monthly moves are percentage changes in the estimate.</dd>
+              <dt>Bullish signal</dt><dd>A fall over 30 days supports gold, silver and Indian equities in the model. A weaker dollar can ease pressure on foreign investment flows into India.</dd>
+              <dt>Bearish signal</dt><dd>A rise over 30 days weighs on all three scores. The Indian equity score has the largest deduction per 1% dollar rise.</dd>
+            </dl>
+          </article>
+          <article class="parameter">
+            <h4>Surprise Tracker</h4>
+            <dl>
+              <dt>What it is</dt><dd>The filled bar shows the release-day actual. The grey tick marks consensus. Subtract forecast from actual to get the surprise in percentage points (pp) for inflation or thousands of jobs for payrolls. Forecasts are entered by hand. Hollow bars show upcoming releases. Past forecasts without a logged actual are hidden.</dd>
+              <dt>Bullish signal</dt><dd>For inflation, a bar below its forecast tick is a cooler print. For payrolls, a modest beat can support Indian equities even as it weighs on metals.</dd>
+              <dt>Bearish signal</dt><dd>For inflation, a bar above its tick is a hotter print. A payroll beat above 50K weighs on all three asset scores. A hollow bar has no actual yet.</dd>
+            </dl>
+          </article>
+        </section>
+        <article class="guide-scoring">
+          <h3>Scoring and freshness</h3>
+          <p>Start at 50 and add the eligible contributions below. Each has its own cap in either direction. The final score stays within 0–100. An excluded input adds nothing and does not count towards the minimum of <strong data-score-min></strong> inputs. The remaining weights keep their original size.</p>
+          <table>
+            <caption>Score points per input move</caption>
+            <thead><tr><th scope="col">Input move</th><th scope="col">Gold</th><th scope="col">Silver</th><th scope="col">Indian equities</th></tr></thead>
+            <tbody id="guideWeights"></tbody>
+          </table>
+          <p>For equities, a payroll beat of up to 50K supports the score. A larger beat or a miss weighs on it. Yield and dollar inputs need observed series marked LATEST, CACHED or SNAPSHOT, with enough history to measure each move. CPI and NFP surprises need matching release months.</p>
+          <p>The Impact Tracker uses the last three logged inflation surprises, the latest payroll surprise and dollar direction to interpret pressure on gold ETFs, silver ETFs, Nifty Next 50 and small caps. Safe-haven buying or investor flows can outweigh those signals.</p>
+          <dl>
+            <dt>What the badges mean</dt>
+            <dd><strong>LATEST</strong> means a successful check is current for that source. <strong>CACHED</strong> uses saved data after a failed check. <strong>SNAPSHOT</strong> uses saved observations without a current check. <strong>STALE</strong> flags an overdue observation or, for a current rate, an overdue check.</dd>
+            <dd><strong>BASELINE</strong> identifies embedded historical values. <strong>MANUAL</strong> identifies hand-maintained records. <strong>UNAVAILABLE</strong> means the source has no usable data.</dd>
+            <dt>When did the number change?</dt>
+            <dd><strong>Last success</strong> tells you when the provider was successfully checked, even if it returned the same values. <strong>Newest observation</strong> dates the reading itself. <strong>Newest obs arrived</strong> records when the newest observation date changed. The table reports revisions to existing dates separately.</dd>
+            <dt>What Refresh Data checks</dt>
+            <dd><strong>Local launcher.</strong> Opening the page checks due sources. Refresh asks the Python server to recheck all sources, reusing checks from the last 30 seconds. A failed check retains the last good data.</dd>
+            <dd><strong>Hosted page.</strong> Refresh reloads the snapshot published by the three-hourly job and checks ECB rates in the browser.</dd>
+            <dd><strong>Direct file.</strong> Refresh reuses the loaded snapshot and checks only ECB rates in the browser. Open the dashboard through the local launcher to run the full provider check.</dd>
+          </dl>
+        </article>
       </div>
 
-      <div class="source-card">
-        <div class="source-indicator">
-          <div class="source-dot" style="background:#7c3aed"></div>
-          <div class="source-name">USD / INR</div>
+      <div role="tabpanel" id="guideRefs" aria-labelledby="guideRefsTab" tabindex="0" hidden>
+        <div class="guide-grid">
+          <article>
+            <h3>Indian policy and statistics</h3>
+            <ul>
+              <li><a href="https://www.rbi.org.in/" target="_blank" rel="noopener">RBI Current Rates · policy repo rate</a></li>
+              <li><a href="https://esankhyiki.mospi.gov.in/macroindicators?product=cpi" target="_blank" rel="noopener">MoSPI CPI · monthly All-India Combined inflation</a></li>
+              <li><a href="https://esankhyiki.mospi.gov.in/macroindicators?product=nas" target="_blank" rel="noopener">MoSPI National Accounts · quarterly constant-price GDP</a></li>
+              <li><a href="https://data.worldbank.org/indicator/FP.CPI.TOTL.ZG?locations=IN" target="_blank" rel="noopener">World Bank · India calendar-year CPI cross-check</a></li>
+              <li><a href="https://data.worldbank.org/indicator/NY.GDP.MKTP.KD.ZG?locations=IN" target="_blank" rel="noopener">World Bank · India fiscal-year GDP cross-check</a></li>
+            </ul>
+            <p>The World Bank checks compare annual values with four chart quarters. A gap above 0.8 pp flags the comparison for review. Only quarterly data or verified baselines supply chart points.</p>
+            <p><strong>Internal manual record.</strong> <code>FALLBACK.repo</code> holds verified MPC quarter-end levels. India baseline verified <span id="vintageDate">–</span>.</p>
+          </article>
+          <article>
+            <h3>FX and commodities</h3>
+            <ul>
+              <li><a href="https://api.frankfurter.dev/v1/latest?base=USD&amp;symbols=INR" target="_blank" rel="noopener">Frankfurter · latest ECB USD/INR reference rate</a></li>
+              <li><a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank" rel="noopener">ECB · reference rates behind USD/INR and the DXY estimate</a></li>
+              <li><a href="https://fred.stlouisfed.org/series/MCOILBRENTEU" target="_blank" rel="noopener">FRED / EIA · monthly Brent spot average (MCOILBRENTEU)</a></li>
+              <li><a href="https://www.worldbank.org/en/research/commodity-markets" target="_blank" rel="noopener">World Bank Pink Sheet · historical Brent baseline</a></li>
+            </ul>
+            <p>The April 2026 Pink Sheet supplies the embedded quarterly Brent averages through Q1 2026. The dashboard uses these where the FRED series lacks a complete quarter.</p>
+          </article>
+          <article>
+            <h3>US spillover</h3>
+            <ul>
+              <li><a href="https://fred.stlouisfed.org/series/CPIAUCNS" target="_blank" rel="noopener">FRED / BLS · headline CPI index (CPIAUCNS)</a></li>
+              <li><a href="https://fred.stlouisfed.org/series/PCEPILFE" target="_blank" rel="noopener">FRED / BEA · core PCE price index (PCEPILFE)</a></li>
+              <li><a href="https://fred.stlouisfed.org/series/PAYEMS" target="_blank" rel="noopener">FRED / BLS · monthly payroll levels (PAYEMS)</a></li>
+              <li><a href="https://fred.stlouisfed.org/series/DFII10" target="_blank" rel="noopener">FRED / Federal Reserve · daily 10-year real yield (DFII10)</a></li>
+            </ul>
+            <p><strong>Internal manual records.</strong> <code>US_RELEASES</code> stores release-day actuals, forecasts and previous readings. <code>US_UPCOMING</code> stores upcoming dates and consensus forecasts. Both are entered by hand.</p>
+            <p>US cards and trends can fall back to embedded readings verified <span id="usVintage">–</span>.</p>
+          </article>
         </div>
-        <div class="source-meta">ECB euro reference rates (published ≈16:00 CET on TARGET business days) via Frankfurter, crossed to USD. A daily reference rate, not a live market quote. Chart = last reference rate on or before each quarter end.</div>
-        <div class="source-meta">Note: ECB reference ≠ FBIL/RBI rate — typically differs by a few paise; published ~16:00 CET working days.</div>
-        <a class="source-url" href="https://api.frankfurter.dev/v1/latest?base=USD&symbols=INR" target="_blank">api.frankfurter.dev · USD→INR</a>
-        <div class="source-status cached-src" id="inrSrcStatus">◆ Baseline</div>
       </div>
-
-      <div class="source-card">
-        <div class="source-indicator">
-          <div class="source-dot" style="background:#b45309"></div>
-          <div class="source-name">Brent Crude</div>
-        </div>
-        <div class="source-meta">FRED <a href="https://fred.stlouisfed.org/series/MCOILBRENTEU" target="_blank">MCOILBRENTEU</a> (EIA Europe Brent spot, monthly average of daily prices, $/bbl). Card = latest monthly average, not a current price. Chart quarter = mean of 3 complete months; incomplete quarters keep the baseline. EIA spot and Pink Sheet averages differ slightly.</div>
-        <div class="source-meta">Baseline: WB Pink Sheet (Apr-2026 edition) quarterly averages, verified through Q1 2026.</div>
-        <a class="source-url" href="https://www.worldbank.org/en/research/commodity-markets" target="_blank">worldbank.org · Commodity Markets (Pink Sheet)</a>
-        <div class="source-status cached-src" id="brentSrcStatus">◆ Baseline</div>
-      </div>
-
-    </div>
+    </section>
     <details class="status-panel" id="statusPanel" open>
       <summary>Source &amp; refresh status<span class="status-panel-sum" id="statusPanelSum"></span></summary>
       <div class="status-table-wrap"><table class="status-table" id="statusTable"></table></div>
     </details>
-    <div class="footer-note">
-      <strong>Provenance:</strong> LATEST = the provider was checked during this page load (or within the source's reuse window) and this is its newest published observation · CACHED = saved data shown because this load's check failed · SNAPSHOT = saved data, not re-checked (opened as a file or server unavailable) · STALE = a newer release is overdue for this series' publication schedule · BASELINE = embedded data (verified <span id="vintageDate">–</span>) · MANUAL = maintained by hand · UNAVAILABLE = no usable data.
-      Checking a source is not the same as receiving new data: the status table shows when each source was checked and whether a newer observation arrived. The header badge counts per-card states; one successful provider never turns the whole dashboard green.<br>
-      <strong>Methodology:</strong> No annual-to-quarterly scaling or interpolation is performed anywhere (removed in v2) — quarterly values are either genuine API observations or curated baseline from primary publications.
-      WB India conventions differ by series: CPI annual ≈ calendar-year average; GDP annual = India fiscal year (Apr–Mar, labelled by starting year). A ⚠ divergence flag appears if cross-check differs from baseline by &gt;0.8 pp — if triggered, re-verify the basis before relying on either number.
-      Historical values are the latest revised estimates from each provider, not first prints. localStorage is not used; saved data lives in <code>data/macro_snapshot.js</code>, written atomically by the local updater.
-    </div>
   </div>
 
 </div><!-- /main -->
@@ -2544,7 +2634,7 @@ function usBuildSurpriseChart() {
   const lastLogged = US_RELEASES.map(r => r.date).sort().pop();
   document.getElementById('usSurpriseNote').textContent =
     `MANUAL log (last entry ${lastLogged || '–'}) · ${real.length} realized releases + ${up.length} upcoming (hollow)` +
-    (usState.expiredUpcoming ? ` · ${usState.expiredUpcoming} past 'upcoming' rows hidden (date passed, actual not logged)` : '') + ` · forecast tick = consensus · auto-fills when US_RELEASES gains the dated actual · time axis = true calendar spacing · source: manual US_RELEASES + US_UPCOMING.`;
+    (usState.expiredUpcoming ? ` · ${usState.expiredUpcoming} past forecasts hidden (actual not logged)` : '');
 }
 
 // ─── orchestrator ─────────────────────────────────────────────────────────────
@@ -2953,7 +3043,51 @@ function renderStatusTable() {
   document.getElementById('statusPanelSum').textContent = `· ${ids.length} automated sources · ${mode}`;
 }
 
+// Dashboard guide: initialise once so data refreshes preserve the selected tab.
+function initMacroGuide() {
+  const guide = document.getElementById('macroGuide');
+  const tabs = Array.from(guide.querySelectorAll('[role="tab"]'));
+  function select(tab) {
+    for (const item of tabs) {
+      const selected = item === tab;
+      item.setAttribute('aria-selected', String(selected));
+      item.tabIndex = selected ? 0 : -1;
+      guide.querySelector('#' + item.getAttribute('aria-controls')).hidden = !selected;
+    }
+  }
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => select(tab));
+    tab.addEventListener('keydown', event => {
+      const index = { ArrowLeft: i - 1, ArrowRight: i + 1, Home: 0, End: tabs.length - 1 }[event.key];
+      if (index === undefined) return;
+      event.preventDefault();
+      const next = tabs[(index + tabs.length) % tabs.length];
+      select(next);
+      next.focus();
+    });
+  });
+
+  guide.querySelectorAll('[data-score-min]').forEach(el => { el.textContent = US_MIN_SCORE_INPUTS; });
+  const inputs = [
+    ['Real yield, +1 bp over 30 days', 'ryTrendPerBps', 'ryTrendCap'],
+    ['Real yield, per 1 pp above pivot', 'ryLevelPer', 'ryLevelCap'],
+    ['DXY, +1% over 30 days', 'dxyPerPct', 'dxyCap'],
+    ['CPI surprise, +0.1 pp', 'cpiSurPerTenth', 'cpiSurCap'],
+    ['NFP surprise, +100K jobs', 'nfpSurPer100K', 'nfpSurCap']
+  ];
+  guide.querySelector('#guideWeights').innerHTML = inputs.map(([label, factor, cap]) => {
+    const cells = ['gold', 'silver', 'eq'].map(asset => {
+      const w = US_SCORE_WEIGHTS[asset];
+      const weight = w[factor] === null ? 'Tiered' : w[factor];
+      const pivot = factor === 'ryLevelPer' ? `<small>pivot ${w.ryLevelPivot}%</small>` : '';
+      return `<td>${weight}<small>cap ±${w[cap]}</small>${pivot}</td>`;
+    });
+    return `<tr><th scope="row">${label}</th>${cells.join('')}</tr>`;
+  }).join('');
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
+initMacroGuide();
 loadAllData();
 </script>
 </body>

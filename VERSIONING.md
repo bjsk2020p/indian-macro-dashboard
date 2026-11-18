@@ -4,7 +4,8 @@
 
 - `VERSION` (project root) is the **only** authoritative version. It contains either
   `MAJOR.MINOR.PATCH` or the word `unversioned`.
-- Current status: **1.0.0**, released 2026-11-17 (snapshot `Releases/v1.0.0/`, hashes in `CHANGELOG.md`).
+- Current status: **1.2.0**, released 2026-11-18 (snapshot `Releases/v1.2.0/`, hashes in `CHANGELOG.md`).
+  Earlier: 1.1.0 (2026-11-18) and 1.0.0 (2026-11-17).
 - Legacy labels are **not** version sources. The `_v5` in `india_macro_dashboard_v5.html`, the
   page title `India + US Macro Dashboard v3`, and the inline "v2" comments predate this scheme
   and disagree with each other. The active file keeps its path so existing links and launch
@@ -40,11 +41,24 @@ unless the user specifies another number.
 4. Copy, unchanged, into `Releases/v<X.Y.Z>/` at the same relative paths:
    `india_macro_dashboard_v5.html`, `refresh_data.py`, `server.py`, `launcher.py`,
    `Open_Indian_Macro_Dashboard.cmd`, `refresh_data.bat`, and `data/macro_snapshot.js` (the data
-   as released; libraries load from CDN). Do not copy `data/server.log`. Record the SHA-256 of
-   each copied file in the changelog entry.
+   as released; libraries load from CDN). From 1.1.0, also copy the hosting files:
+   `manifest.webmanifest`, `icons/*.png`, `ci_site.py`, `ci_report.py`,
+   `.github/workflows/pages.yml` and `.github/workflows/source-check.yml`. Do not copy
+   `data/server.log`. Record the SHA-256 of each copied file in the changelog entry.
 5. Run `python -m unittest discover tests`, then open the snapshot's HTML directly (saved data)
    and confirm it loads. The active dashboard must still open via the launcher.
-6. Commit or tag (`git tag v<X.Y.Z>`) **only if the user asks**. Never push.
+6. Every release includes publication to the mobile site. The release request authorises a
+   release commit and a normal push to `origin/main`. Include the version change, active
+   dashboard and its dependencies, release notes and immutable snapshot in the release commit.
+   Keep unrelated working-tree changes out. Tags require a separate explicit request.
+7. Pushing a change to the root `VERSION` on `main` starts `.github/workflows/pages.yml`.
+   Follow the run for that commit through the deploy job. If publication needs a retry,
+   rerun the workflow for the release commit. Keep the existing version and snapshot.
+8. Before reporting completion, open the [mobile dashboard](https://bjsk2020p.github.io/indian-macro-dashboard/)
+   at phone width and verify the released feature. Compare the served root HTML's SHA-256
+   with the HTML digest in the release changelog. Allow for CDN propagation and recheck
+   the ordinary URL. The hosted data snapshot has its own three-hour refresh cycle and can
+   be newer than the archived data. Report the version, live link and verification result.
 
 Snapshots in `Releases/` are immutable.
 

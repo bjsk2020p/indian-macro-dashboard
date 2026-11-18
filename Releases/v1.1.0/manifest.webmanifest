@@ -1,0 +1,14 @@
+{
+  "name": "India + US Macro Dashboard",
+  "short_name": "India Macro",
+  "description": "India and US macro indicators, refreshed by a scheduled job every 3 hours.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f0ede8",
+  "theme_color": "#1e293b",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

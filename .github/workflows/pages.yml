@@ -3,6 +3,9 @@
 name: Publish dashboard (GitHub Pages)
 
 on:
+  push:
+    branches: [main]
+    paths: [VERSION]
   schedule:
     # Every 3 hours at :17 UTC (off the hour, when GitHub's scheduler is less busy).
     # Must match HOSTED_SCHEDULE_MINUTES = 180 in india_macro_dashboard_v5.html (a test checks this).

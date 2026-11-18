@@ -1,0 +1,88 @@
+# Phone hosting: refresh the data on GitHub's servers every 3 hours and publish the dashboard
+# to GitHub Pages. Never commits data to the repository; the published snapshot is the merge base.
+name: Publish dashboard (GitHub Pages)
+
+on:
+  schedule:
+    # Every 3 hours at :17 UTC (off the hour, when GitHub's scheduler is less busy).
+    # Must match HOSTED_SCHEDULE_MINUTES = 180 in india_macro_dashboard_v5.html (a test checks this).
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Look up the Pages address
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Download the published snapshot (merge base)
+        run: |
+          mkdir -p "$RUNNER_TEMP/published"
+          if curl -fsS --max-time 30 -o "$RUNNER_TEMP/published/macro_snapshot.js" \
+               "${{ steps.pages.outputs.base_url }}/data/macro_snapshot.js"; then
+            echo "Downloaded the published snapshot."
+          else
+            echo "::notice::No published snapshot yet (first run?) - using the repository copy."
+          fi
+
+      - name: Merge published and repository snapshots
+        run: python ci_site.py seed "$RUNNER_TEMP/published/macro_snapshot.js"
+
+      - name: Run refresh_data.py (sources whose reuse window has expired)
+        id: refresh
+        # Exit code 1 = at least one source failed; its last good data is kept and the page
+        # shows it as CACHED. The next steps report which source failed.
+        continue-on-error: true
+        run: python refresh_data.py --due
+
+      - name: Per-source results
+        run: python ci_report.py
+
+      - name: Note failed sources
+        if: steps.refresh.outcome == 'failure'
+        run: echo "::warning::At least one source failed - its previous data is published and marked CACHED. See the table above."
+
+      - name: Validate snapshot and assemble the site
+        # Fails the run (and skips deploy, so the previous site stays up) if the snapshot is empty or corrupt.
+        run: python ci_site.py build _site
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
